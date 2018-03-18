@@ -26,6 +26,7 @@ def main():
             while maleRankingPosition > 1 and femaleRankingPosition > 1:  # While they're players remaining
                 count += 1
                 fileInfo.get_score_files(count)
+                fileInfo.display_file_round_winners(count)
                 with open(maleScoresFile) as csvFile:  # Open the selected file
                     readCsv = csv.reader(csvFile, delimiter=',')
                     if len(list(readCsv)) <= 9:  # Ensures that only top 16 players are processed
@@ -107,6 +108,7 @@ def score_input_menu(fileInfo):
         if scoreChoice == '1':
             fileInfo.get_score_files(1)
             fileInfo.set_difficulty(maleScoresFile)  # Attempt to pull difficulty from file name
+            fileInfo.display_file_round_winners(1)
             with open(maleScoresFile) as csvFile:
                 readCsv = csv.reader(csvFile, delimiter=',')
                 if len(list(readCsv)) <= 9:  # Ensures that only top 16 players are processed
@@ -874,6 +876,96 @@ class FileInformation:
                         femalePlayerRankings[i] = (player[0] + '-' + str(player[1]) + '-' + total)
                     elif len(prevPlayer) > 3 >= len(player):  # Adds previous money to empty amount
                         femalePlayerRankings[i] += ("-" + str(prevPlayer[2]))
+
+    # Displays results of the current round
+    def display_file_round_winners(self, roundNum):
+        clear_screen()
+        print("\nThe following results for round " + str(roundNum) + " have been calculated:")
+
+        # Displays the MALE PLAYER round results
+        with open(maleScoresFile) as csvFile:
+            readCsv = csv.reader(csvFile, delimiter=',')
+            next(readCsv)  # Skip headers in file
+            maleRoundScores = []
+            for row in readCsv:
+                if row[1] > row[3]:
+                    maleRoundScores.append("Player Name - " + row[0])
+                elif row[1] < row[3]:
+                    maleRoundScores.append("Player Name - " + row[2])
+                else:  # If no winner is found, display error and get appended scores
+                    while True:
+                        print("\nERROR IN SCORE ENTRY!!!\n"
+                              "Please append the below score:\n"
+                              + row[0] + "-" + row[1] + " v " + row[2] + "-" + row[3])
+                        # Get a new valid score
+                        print("\n\nEnter new score for " + row[0])
+                        while True:
+                            firstScore = get_valid_input()
+                            if (int(firstScore) > 3) or (int(firstScore) < 0):
+                                print("Score invalid.")
+                            else:
+                                break
+                        print("\n\nEnter new score for " + row[2])
+                        while True:
+                            secondScore = get_valid_input()
+                            if (int(secondScore) > 3) or (int(secondScore) < 0):
+                                print("Score invalid.")
+                            else:
+                                break
+                        # Check input
+                        if firstScore > secondScore:
+                            maleRoundScores.append("Player Name - " + row[0])
+                            break
+                        elif firstScore < secondScore:
+                            maleRoundScores.append("Player Name - " + row[2])
+                            break
+
+        # Displays the FEMALE PLAYER round results
+        with open(femaleScoresFile) as csvFile:
+            readCsv = csv.reader(csvFile, delimiter=',')
+            next(readCsv)  # Skip headers in file
+            femaleRoundScores = []
+            for row in readCsv:
+                if row[1] > row[3]:
+                    femaleRoundScores.append("Player Name - " + row[0])
+                elif row[1] < row[3]:
+                    femaleRoundScores.append("Player Name - " + row[2])
+                else:  # If no winner is found, display error and get appended scores
+                    while True:
+                        print("\nERROR IN SCORE ENTRY!!!\n"
+                              "Please append the below score:\n"
+                              + row[0] + "-" + row[1] + " v " + row[2] + "-" + row[3])
+                        # Get a new valid score
+                        print("\n\nEnter new score for " + row[0])
+                        while True:
+                            firstScore = get_valid_input()
+                            if (int(firstScore) > 3) or (int(firstScore) < 0):
+                                print("Score invalid.")
+                            else:
+                                break
+                        print("\n\nEnter new score for " + row[2])
+                        while True:
+                            secondScore = get_valid_input()
+                            if (int(secondScore) > 3) or (int(secondScore) < 0):
+                                print("Score invalid.")
+                            else:
+                                break
+                        # Check input
+                        if firstScore > secondScore:
+                            femaleRoundScores.append("Player Name - " + row[0])
+                            break
+                        elif firstScore < secondScore:
+                            femaleRoundScores.append("Player Name - " + row[2])
+                            break
+
+        # Print winners
+        print("Male winners:")
+        for winner in maleRoundScores:
+            print(winner)
+        print("\nFemale winners:")
+        for winner in femaleRoundScores:
+            print(winner)
+        print("\n")
 
     # Displays results to the user via the prompt
     def display_results(self):
