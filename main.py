@@ -1,4 +1,4 @@
-# Name: Assignment Project Part A - Task 6
+# Name: Assignment Project Part B
 # Author: Michael McCormick (15012271)
 
 import csv
@@ -199,6 +199,8 @@ class FileInformation:
         fileList.remove('main.py')
     if '.git' in fileList:
         fileList.remove('.git')
+    if 'README.md' in fileList:
+        fileList.remove('README.md')
 
     # Check for presence of temp files, set global flag accordingly
     global tempMaleFile
@@ -580,9 +582,33 @@ class FileInformation:
                     malePlayerRankings.append(row[2] + '-' + str(rankingPoints))
                 elif row[1] < row[3]:
                     malePlayerRankings.append(row[0] + '-' + str(rankingPoints))
-                else:  # If no winner is found, display error and exit
-                    print("\n\nERROR IN SCORE ENTRY!!!\n\n")
-                    sys.exit()
+                else:  # If no winner is found, display error and get new scores
+                    while True:
+                        print("\nERROR IN SCORE ENTRY!!!\n"
+                              "Please append the below score:\n"
+                              + row[0] + "-" + row[1] + " v " + row[2] + "-" + row[3])
+                        # Get a new valid score
+                        print("\n\nEnter new score for " + row[0])
+                        while True:
+                            firstScore = get_valid_input()
+                            if (int(firstScore) > 3) or (int(firstScore) < 0):
+                                print("Score invalid.")
+                            else:
+                                break
+                        print("\n\nEnter new score for " + row[2])
+                        while True:
+                            secondScore = get_valid_input()
+                            if (int(secondScore) > 3) or (int(secondScore) < 0):
+                                print("Score invalid.")
+                            else:
+                                break
+                        # Check input
+                        if firstScore > secondScore:
+                            malePlayerRankings.append(row[2] + '-' + str(rankingPoints))
+                            break
+                        elif firstScore < secondScore:
+                            malePlayerRankings.append(row[0] + '-' + str(rankingPoints))
+                            break
                 maleRankingPosition += -1
                 # If this is the last player, assign them the highest ranking points
                 if maleRankingPosition == 1:
@@ -603,9 +629,33 @@ class FileInformation:
                     femalePlayerRankings.append(row[2] + '-' + str(rankingPoints))
                 elif row[1] < row[3]:
                     femalePlayerRankings.append(row[0] + '-' + str(rankingPoints))
-                else:  # If no winner is found, display error and exit
-                    print("\n\nERROR IN SCORE ENTRY!!!\n\n")
-                    sys.exit()
+                else:  # If no winner is found, display error and get appended score
+                    while True:
+                        print("\nERROR IN SCORE ENTRY!!!\n"
+                              "Please append the below score:\n"
+                              + row[0] + "-" + row[1] + " v " + row[2] + "-" + row[3])
+                        # Get a new valid score
+                        print("\n\nEnter new score for " + row[0])
+                        while True:
+                            firstScore = get_valid_input()
+                            if (int(firstScore) > 2) or (int(firstScore) < 0):
+                                print("Score invalid.")
+                            else:
+                                break
+                        print("\n\nEnter new score for " + row[2])
+                        while True:
+                            secondScore = get_valid_input()
+                            if (int(secondScore) > 2) or (int(secondScore) < 0):
+                                print("Score invalid.")
+                            else:
+                                break
+                        # Check input
+                        if firstScore > secondScore:
+                            femalePlayerRankings.append(row[2] + '-' + str(rankingPoints))
+                            break
+                        elif firstScore < secondScore:
+                            femalePlayerRankings.append(row[0] + '-' + str(rankingPoints))
+                            break
                 femaleRankingPosition += -1
                 # If this is the last player, assign them the highest ranking points
                 if femaleRankingPosition == 1:
