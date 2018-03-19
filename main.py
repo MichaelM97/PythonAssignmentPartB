@@ -19,31 +19,41 @@ def main():
         # Store information from selected files
         fileInfo.store_ranking_info()
         fileInfo.store_prize_info()
+        fileInfo.store_player_names()
+
+        # Check for tempfiles containing pre-existing data
+        global tempFiles
+        if tempMaleFile:
+            tempFiles = True
+        else:
+            tempFiles = False
 
         # Process round 1 scores
-        fileInfo.process_file_scores()
+        if scoreChoice == '1':
+            fileInfo.process_file_scores()
+        else:
+            fileInfo.get_score_input(1, tempFiles)
+            fileInfo.process_user_scores()
+
         fileInfo.display_file_round_winners(1)
 
         # Get file selection from user, and loop through to calculate top 16 players scores
         count = 1
         while count < 5 and maleRankingPosition > 1 and femaleRankingPosition > 1:
+            score_input_menu(fileInfo, count)  # User chooses if scores entered manually or via file
+
+            # Get score input from FILE
             if scoreChoice == '1':
                 count += 1
-                score_input_menu(fileInfo, count)  # User chooses if scores entered manually or via file
                 fileInfo.process_file_scores()
                 fileInfo.display_file_round_winners(count)
 
-            # Get score input from user, and loop through to calculate top 16 players scores
+            # Get score input from USER
             elif scoreChoice == '2':
-                global tempFiles
-                if tempMaleFile:
-                    tempFiles = True
-                #while maleRankingPosition > 1 and femaleRankingPosition > 1:  # While they're players remaining
                 count += 1
                 fileInfo.reset_player_names()
                 fileInfo.get_score_input(count, tempFiles)
-                if len(list(maleUserScores)) <= 9:  # Ensures that only top 16 players are processed
-                    fileInfo.process_user_scores()
+                fileInfo.process_user_scores()
 
         # Calculate players winnings and display results
         fileInfo.process_winnings()
@@ -111,14 +121,8 @@ def score_input_menu(fileInfo, roundNum):
             fileInfo.set_difficulty(maleScoresFile)  # Attempt to pull difficulty from file name
             break
         elif scoreChoice == '2':
-            fileInfo.store_player_names()  # Stores player names so user can identify who scored what
-            if tempMaleFile:  # Informs user their data will be added
-                print("DATA FROM PREVIOUSLY CLOSED ENTRY DETECTED!!! This has been re-added for you.\n")
-            else:  # Ask user to input difficulty if it cannot be pulled from file
+            if not tempMaleFile and tournamentDifficulty is None:
                 fileInfo.set_difficulty("")  # Set difficulty using user input
-            fileInfo.get_score_input(1, tempMaleFile)
-            if len(list(maleUserScores)) <= 9:  # Ensures that only top 16 players are processed
-                fileInfo.process_user_scores()
             break
         else:
             print("Invalid Input!\n\n")
@@ -520,19 +524,49 @@ class FileInformation:
 
     # Adds back all winners to the player name arrays, allowing further processing of winners
     def reset_player_names(self):
+        # Clear lists
+        global malePlayerNames
+        malePlayerNames = []
+        global femalePlayerNames
+        femalePlayerNames = []
+        maleLosers = []
+        maleNames = []
+        femaleLosers = []
+        femaleNames = []
+
         # Reset MALE PLAYER scores
-        for row in maleUserScores:
-            if row[1] > row[3]:
-                malePlayerNames.append(row[0])  # Adds winner back to list
-            elif row[1] < row[3]:
-                malePlayerNames.append(row[2])  # Adds winner back to list
+        # Get MALE losers
+        for losers in malePlayerRankings:
+            loser = losers.split('-')
+            maleLosers.append(loser[0])
+
+        # Get MALE names and create winner list
+        with open(malePlayersFile) as csvFile:
+            readCsv = csv.reader(csvFile, delimiter=',')
+            for row in readCsv:
+                maleNames.append(row[0])
+        maleWinners = [n for n in maleNames if n not in maleLosers]
+
+        # Add winners back to list
+        for row in maleWinners:
+            malePlayerNames.append(row)
 
         # Reset FEMALE PLAYER scores
-        for row in femaleUserScores:
-            if row[1] > row[3]:
-                femalePlayerNames.append(row[0])  # Adds winner back to list
-            elif row[1] < row[3]:
-                femalePlayerNames.append(row[2])  # Adds winner back to list
+        # Get FEMALE losers
+        for losers in femalePlayerRankings:
+            loser = losers.split('-')
+            femaleLosers.append(loser[0])
+
+        # Get FEMALE names and create winner list
+        with open(femalePlayersFile) as csvFile:
+            readCsv = csv.reader(csvFile, delimiter=',')
+            for row in readCsv:
+                femaleNames.append(row[0])
+        femaleWinners = [n for n in femaleNames if n not in femaleLosers]
+
+        # Add winners back to list
+        for row in femaleWinners:
+            femalePlayerNames.append(row)
 
     # Stores required ranking points information from file provided by user
     def store_ranking_info(self):
