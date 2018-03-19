@@ -36,7 +36,7 @@ def main():
             fileInfo.get_score_input(count, tempFiles)
             fileInfo.process_user_scores()
 
-        fileInfo.display_file_round_winners(count)
+        fileInfo.display_round_winners(count)
         count += 1
 
         # Get file selection from user, and loop through to calculate top 16 players scores
@@ -47,7 +47,7 @@ def main():
             if scoreChoice == '1':
                 count += 1
                 fileInfo.process_file_scores()
-                fileInfo.display_file_round_winners(count)
+                fileInfo.display_round_winners(count)
 
             # Get score input from USER
             elif scoreChoice == '2':
@@ -122,7 +122,7 @@ def score_input_menu(fileInfo, roundNum):
             fileInfo.set_difficulty(maleScoresFile)  # Attempt to pull difficulty from file name
             break
         elif scoreChoice == '2':
-            if not tempMaleFile and tournamentDifficulty is None:
+            if not tempMaleFile and roundNum == 1:
                 fileInfo.set_difficulty("")  # Set difficulty using user input
             break
         else:
@@ -140,7 +140,7 @@ def initial_menu():
             "Please ensure that you have files containing the: Ranking Points, Prize Money, Male Player Names,"
             "\nand Female Player Names placed with in the same project folder as this program;"
             " along with any files containing player scores that you may wish to process.\n"
-            "If the program previously closed whilst you were manually inputting scores, this"
+            "If the program previously closed whilst data was being processed, this"
             " information will be automatically re-added for you.\n")
         print("Please select an option:\n1 - Run Program\n2 - Close Program")
         userInput = get_valid_input()
@@ -205,7 +205,11 @@ class FileInformation:
     if 'README.md' in fileList:
         fileList.remove('README.md')
 
-    # Check for presence of temp files, set global flag accordingly
+    # Retrieves directory path
+    global directoryPath
+    directoryPath = str(os.path.dirname(os.path.realpath(__file__)))
+
+    # Check for presence of temp files, if not create file with headers
     global tempMaleFile
     tempMaleFile = False
     global tempFemaleFile
@@ -213,13 +217,19 @@ class FileInformation:
     if 'TEMPMALE.csv' in fileList:
         tempMaleFile = True
         fileList.remove('TEMPMALE.csv')
+    else:
+        csvFile = open((directoryPath + "\\" + "TEMPMALE.csv"), 'a', newline="\n")
+        writer = csv.writer(csvFile, dialect='excel')
+        writer.writerow(["Round Number"] + ["Player A"] + ["Score"] + ["Player B"] + ["Score"] + ["Tournament Name"])
+        csvFile.close()
     if 'TEMPFEMALE.csv' in fileList:
         tempFemaleFile = True
         fileList.remove('TEMPFEMALE.csv')
-
-    # Retrieves directory path
-    global directoryPath
-    directoryPath = str(os.path.dirname(os.path.realpath(__file__)))
+    else:
+        csvFile = open((directoryPath + "\\" + "TEMPFEMALE.csv"), 'a', newline="\n")
+        writer = csv.writer(csvFile, dialect='excel')
+        writer.writerow(["Round Number"] + ["Player A"] + ["Score"] + ["Player B"] + ["Score"] + ["Tournament Name"])
+        csvFile.close()
 
     # Arrays used to store file information
     global maleScoresInfo
@@ -349,10 +359,8 @@ class FileInformation:
             maleUserScores.append(row)  # Store data entered into global array for later processing
 
             # Adds most recent male match entry to temp file
-            csvFile = open((directoryPath + "\\" + "TEMPMALE.csv"), 'a', newline="\n")
-            writer = csv.writer(csvFile, dialect='excel')
-            writer.writerow([roundNum] + row + [tournamentName])
-            csvFile.close()
+            maleWrite = [roundNum] + row + [tournamentName]
+            FileInformation.update_temp_files(self, maleWrite, 0)
 
         # Get FEMALE PLAYER scores as input
         while len(femalePlayerNames) > 1:  # While there are still female players left without a score
@@ -408,10 +416,8 @@ class FileInformation:
             femaleUserScores.append(row)  # Store data entered into global array for later processing
 
             # Adds most recent male match entry to temp file
-            csvFile = open((directoryPath + "\\" + "TEMPFEMALE.csv"), 'a', newline="\n")
-            writer = csv.writer(csvFile, dialect='excel')
-            writer.writerow([roundNum] + row + [tournamentName])
-            csvFile.close()
+            femaleWrite = [roundNum] + row + [tournamentName]
+            FileInformation.update_temp_files(self, 0, femaleWrite)
 
         return roundNum  # Returns in-case it was updated by files
 
@@ -856,6 +862,21 @@ class FileInformation:
                         if row[3] in femalePlayerNames:
                             femalePlayerNames.remove(row[3])
 
+    # Adds data to the temp files
+    def update_temp_files(self, maleWrite, femaleWrite):
+        # Adds to MALE temp file
+        if maleWrite != 0:
+            csvFile = open((directoryPath + "\\" + "TEMPMALE.csv"), 'a', newline="\n")
+            writer = csv.writer(csvFile, dialect='excel')
+            writer.writerow(maleWrite)
+            csvFile.close()
+        # Adds to FEMALE temp file
+        if femaleWrite != 0:
+            csvFile = open((directoryPath + "\\" + "TEMPFEMALE.csv"), 'a', newline="\n")
+            writer = csv.writer(csvFile, dialect='excel')
+            writer.writerow(femaleWrite)
+            csvFile.close()
+
     # Stores results from previously calculated tournaments
     def store_previous_results(self):
         global prevMaleRankings
@@ -921,7 +942,7 @@ class FileInformation:
                         femalePlayerRankings[i] += ("-" + str(prevPlayer[2]))
 
     # Displays results of the current round
-    def display_file_round_winners(self, roundNum):
+    def display_round_winners(self, roundNum):
         clear_screen()
         print("\nThe following results for round " + str(roundNum) + " have been calculated:")
 
