@@ -20,18 +20,18 @@ def main():
         fileInfo.store_ranking_info()
         fileInfo.store_prize_info()
 
+        # Process round 1 scores
+        fileInfo.process_file_scores()
+        fileInfo.display_file_round_winners(1)
+
         # Get file selection from user, and loop through to calculate top 16 players scores
         count = 1
-        while count < 6 and maleRankingPosition > 1 and femaleRankingPosition > 1:
+        while count < 5 and maleRankingPosition > 1 and femaleRankingPosition > 1:
             if scoreChoice == '1':
-                #while maleRankingPosition > 1 and femaleRankingPosition > 1:  # While they're players remaining
                 count += 1
                 score_input_menu(fileInfo, count)  # User chooses if scores entered manually or via file
+                fileInfo.process_file_scores()
                 fileInfo.display_file_round_winners(count)
-                with open(maleScoresFile) as csvFile:  # Open the selected file
-                    readCsv = csv.reader(csvFile, delimiter=',')
-                    if len(list(readCsv)) <= 9:  # Ensures that only top 16 players are processed
-                        fileInfo.process_file_scores()
 
             # Get score input from user, and loop through to calculate top 16 players scores
             elif scoreChoice == '2':
@@ -109,11 +109,6 @@ def score_input_menu(fileInfo, roundNum):
         if scoreChoice == '1':
             fileInfo.get_score_files(roundNum)
             fileInfo.set_difficulty(maleScoresFile)  # Attempt to pull difficulty from file name
-            fileInfo.display_file_round_winners(roundNum)
-            with open(maleScoresFile) as csvFile:
-                readCsv = csv.reader(csvFile, delimiter=',')
-                if len(list(readCsv)) <= 9:  # Ensures that only top 16 players are processed
-                    fileInfo.process_file_scores()
             break
         elif scoreChoice == '2':
             fileInfo.store_player_names()  # Stores player names so user can identify who scored what
@@ -577,12 +572,14 @@ class FileInformation:
         # Process MALE PLAYER scores
         with open(maleScoresFile) as csvFile:
             readCsv = csv.reader(csvFile, delimiter=',')
-            next(readCsv)  # Skip headers in file
             # Calculate ranking points and assign them to losing player
-            if len(list(maleUserScores)) > 9:
+            if len(list(readCsv)) > 9:
                 rankingPoints = 0  # No points for round 1 winners
+                maleRankingPosition += maleRankingPosition  # Size doubled to allow for round 1
             else:
                 rankingPoints = int(rankingPointsInfo[maleRankingPosition]) * tournamentDifficulty
+            csvFile.seek(0)  # Reset file iterator pos
+            next(readCsv)  # Skip headers in file
             for row in readCsv:
                 if row[1] > row[3]:
                     malePlayerRankings.append(row[2] + '-' + str(rankingPoints))
@@ -627,12 +624,14 @@ class FileInformation:
         # Process FEMALE PLAYER scores
         with open(femaleScoresFile) as csvFile:
             readCsv = csv.reader(csvFile, delimiter=',')
-            next(readCsv)  # Skip headers in file
             # Calculate ranking points and assign them to losing player
-            if len(list(maleUserScores)) > 9:
+            if len(list(readCsv)) > 9:
                 rankingPoints = 0  # No points for round 1 winners
+                femaleRankingPosition += femaleRankingPosition  # Size doubled to allow for round 1
             else:
                 rankingPoints = int(rankingPointsInfo[femaleRankingPosition]) * tournamentDifficulty
+            csvFile.seek(0)  # Reset file iterator pos
+            next(readCsv)  # Skip headers in file
             for row in readCsv:
                 if row[1] > row[3]:
                     femalePlayerRankings.append(row[2] + '-' + str(rankingPoints))
@@ -889,15 +888,44 @@ class FileInformation:
         clear_screen()
         print("\nThe following results for round " + str(roundNum) + " have been calculated:")
 
+        maleLosers = []
+        maleNames = []
+        femaleLosers = []
+        femaleNames = []
+
+        # Get MALE losers
+        for losers in malePlayerRankings:
+            loser = losers.split('-')
+            maleLosers.append(loser[0])
+
+        # Get MALE names and create winner list
+        with open(malePlayersFile) as csvFile:
+            readCsv = csv.reader(csvFile, delimiter=',')
+            for row in readCsv:
+                maleNames.append(row[0])
+        maleWinners = [n for n in maleNames if n not in maleLosers]
+
         # Prints all MALE winners
-        for players in enumerate(malePlayerRankings[::-1]):  # Loops in descending order
-            player = players.split('-')  # Splits player information
-            print(player[0])
+        print("\nMale Winners:")
+        for winnerName in maleWinners:
+            print("Player Name - " + str(winnerName))
+
+        # Get FEMALE losers
+        for losers in femalePlayerRankings:
+            loser = losers.split('-')
+            femaleLosers.append(loser[0])
+
+        # Get FEMALE names and create winner list
+        with open(femalePlayersFile) as csvFile:
+            readCsv = csv.reader(csvFile, delimiter=',')
+            for row in readCsv:
+                femaleNames.append(row[0])
+        femaleWinners = [n for n in femaleNames if n not in femaleLosers]
 
         # Prints all FEMALE winners
-        for players in enumerate(femalePlayerRankings[::-1]):  # Loops in descending order
-            player = players.split('-')  # Splits player information
-            print(player[0])
+        print("\nFemale Winners:")
+        for winnerName in femaleWinners:
+            print("Player Name - " + str(winnerName))
 
     # Displays results to the user via the prompt
     def display_results(self):
