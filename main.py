@@ -29,17 +29,18 @@ def main():
             tempFiles = False
 
         # Process round 1 scores
+        count = 1
         if scoreChoice == '1':
             fileInfo.process_file_scores()
         else:
-            fileInfo.get_score_input(1, tempFiles)
+            fileInfo.get_score_input(count, tempFiles)
             fileInfo.process_user_scores()
 
-        fileInfo.display_file_round_winners(1)
+        fileInfo.display_file_round_winners(count)
+        count += 1
 
         # Get file selection from user, and loop through to calculate top 16 players scores
-        count = 1
-        while count < 5 and maleRankingPosition > 1 and femaleRankingPosition > 1:
+        while count < 6 and maleRankingPosition > 1 and femaleRankingPosition > 1:
             score_input_menu(fileInfo, count)  # User chooses if scores entered manually or via file
 
             # Get score input from FILE
@@ -615,9 +616,10 @@ class FileInformation:
             csvFile.seek(0)  # Reset file iterator pos
             next(readCsv)  # Skip headers in file
             for row in readCsv:
-                if row[1] > row[3]:
+                gameTotal = int(row[1]) + int(row[3])  # Check if too many games played
+                if row[1] > row[3] and int(row[1]) == 3 and 6 > gameTotal >= 3:
                     malePlayerRankings.append(row[2] + '-' + str(rankingPoints))
-                elif row[1] < row[3]:
+                elif row[1] < row[3] and int(row[3]) == 3 and 6 > gameTotal >= 3:
                     malePlayerRankings.append(row[0] + '-' + str(rankingPoints))
                 else:  # If no winner is found, display error and get appended scores
                     while True:
@@ -625,7 +627,7 @@ class FileInformation:
                               "Please append the below score:\n"
                               + row[0] + "-" + row[1] + " v " + row[2] + "-" + row[3])
                         # Get a new valid score
-                        print("\n\nEnter new score for " + row[0])
+                        print("\nEnter new score for " + row[0] + ":")
                         while True:
                             firstScore = get_valid_input()
                             if (int(firstScore) > 3) or (int(firstScore) < 0):
@@ -667,9 +669,10 @@ class FileInformation:
             csvFile.seek(0)  # Reset file iterator pos
             next(readCsv)  # Skip headers in file
             for row in readCsv:
-                if row[1] > row[3]:
+                gameTotal = int(row[1]) + int(row[3])  # Check if too many games played
+                if row[1] > row[3] and int(row[1]) == 2 and 4 > gameTotal >= 2:
                     femalePlayerRankings.append(row[2] + '-' + str(rankingPoints))
-                elif row[1] < row[3]:
+                elif row[1] < row[3] and int(row[3]) == 2 and 4 > gameTotal >= 2:
                     femalePlayerRankings.append(row[0] + '-' + str(rankingPoints))
                 else:  # If no winner is found, display error and get appended scores
                     while True:
@@ -677,7 +680,7 @@ class FileInformation:
                               "Please append the below score:\n"
                               + row[0] + "-" + row[1] + " v " + row[2] + "-" + row[3])
                         # Get a new valid score
-                        print("\n\nEnter new score for " + row[0])
+                        print("\nEnter new score for " + row[0] + ":")
                         while True:
                             firstScore = get_valid_input()
                             if (int(firstScore) > 2) or (int(firstScore) < 0):
