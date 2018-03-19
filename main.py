@@ -14,7 +14,7 @@ def main():
 
     while True:  # Loop allows for entry of additional tournaments
 
-        score_input_menu(fileInfo)  # User chooses if scores entered manually or via file
+        score_input_menu(fileInfo, 1)  # User chooses if scores entered manually or via file
 
         # Store information from selected files
         fileInfo.store_ranking_info()
@@ -22,22 +22,23 @@ def main():
 
         # Get file selection from user, and loop through to calculate top 16 players scores
         count = 1
-        if scoreChoice == '1':
-            while maleRankingPosition > 1 and femaleRankingPosition > 1:  # While they're players remaining
+        while count < 6 and maleRankingPosition > 1 and femaleRankingPosition > 1:
+            if scoreChoice == '1':
+                #while maleRankingPosition > 1 and femaleRankingPosition > 1:  # While they're players remaining
                 count += 1
-                fileInfo.get_score_files(count)
+                score_input_menu(fileInfo, count)  # User chooses if scores entered manually or via file
                 fileInfo.display_file_round_winners(count)
                 with open(maleScoresFile) as csvFile:  # Open the selected file
                     readCsv = csv.reader(csvFile, delimiter=',')
                     if len(list(readCsv)) <= 9:  # Ensures that only top 16 players are processed
                         fileInfo.process_file_scores()
 
-        # Get score input from user, and loop through to calculate top 16 players scores
-        elif scoreChoice == '2':
-            global tempFiles
-            if tempMaleFile:
-                tempFiles = True
-            while maleRankingPosition > 1 and femaleRankingPosition > 1:  # While they're players remaining
+            # Get score input from user, and loop through to calculate top 16 players scores
+            elif scoreChoice == '2':
+                global tempFiles
+                if tempMaleFile:
+                    tempFiles = True
+                #while maleRankingPosition > 1 and femaleRankingPosition > 1:  # While they're players remaining
                 count += 1
                 fileInfo.reset_player_names()
                 fileInfo.get_score_input(count, tempFiles)
@@ -97,7 +98,7 @@ def main():
 
 
 # Allows user to choose to enter scores manually or from files
-def score_input_menu(fileInfo):
+def score_input_menu(fileInfo, roundNum):
     clear_screen()
     global scoreChoice
 
@@ -106,9 +107,9 @@ def score_input_menu(fileInfo):
         print("Please select an option:\n\n1 - Read players score from file\n2 - Enter players score manually\n")
         scoreChoice = get_valid_input()
         if scoreChoice == '1':
-            fileInfo.get_score_files(1)
+            fileInfo.get_score_files(roundNum)
             fileInfo.set_difficulty(maleScoresFile)  # Attempt to pull difficulty from file name
-            fileInfo.display_file_round_winners(1)
+            fileInfo.display_file_round_winners(roundNum)
             with open(maleScoresFile) as csvFile:
                 readCsv = csv.reader(csvFile, delimiter=',')
                 if len(list(readCsv)) <= 9:  # Ensures that only top 16 players are processed
@@ -578,7 +579,10 @@ class FileInformation:
             readCsv = csv.reader(csvFile, delimiter=',')
             next(readCsv)  # Skip headers in file
             # Calculate ranking points and assign them to losing player
-            rankingPoints = int(rankingPointsInfo[maleRankingPosition]) * tournamentDifficulty
+            if len(list(maleUserScores)) > 9:
+                rankingPoints = 0  # No points for round 1 winners
+            else:
+                rankingPoints = int(rankingPointsInfo[maleRankingPosition]) * tournamentDifficulty
             for row in readCsv:
                 if row[1] > row[3]:
                     malePlayerRankings.append(row[2] + '-' + str(rankingPoints))
@@ -625,7 +629,10 @@ class FileInformation:
             readCsv = csv.reader(csvFile, delimiter=',')
             next(readCsv)  # Skip headers in file
             # Calculate ranking points and assign them to losing player
-            rankingPoints = int(rankingPointsInfo[femaleRankingPosition]) * tournamentDifficulty
+            if len(list(maleUserScores)) > 9:
+                rankingPoints = 0  # No points for round 1 winners
+            else:
+                rankingPoints = int(rankingPointsInfo[femaleRankingPosition]) * tournamentDifficulty
             for row in readCsv:
                 if row[1] > row[3]:
                     femalePlayerRankings.append(row[2] + '-' + str(rankingPoints))
@@ -882,90 +889,15 @@ class FileInformation:
         clear_screen()
         print("\nThe following results for round " + str(roundNum) + " have been calculated:")
 
-        # Displays the MALE PLAYER round results
-        with open(maleScoresFile) as csvFile:
-            readCsv = csv.reader(csvFile, delimiter=',')
-            next(readCsv)  # Skip headers in file
-            maleRoundScores = []
-            for row in readCsv:
-                if row[1] > row[3]:
-                    maleRoundScores.append("Player Name - " + row[0])
-                elif row[1] < row[3]:
-                    maleRoundScores.append("Player Name - " + row[2])
-                else:  # If no winner is found, display error and get appended scores
-                    while True:
-                        print("\nERROR IN SCORE ENTRY!!!\n"
-                              "Please append the below score:\n"
-                              + row[0] + "-" + row[1] + " v " + row[2] + "-" + row[3])
-                        # Get a new valid score
-                        print("\n\nEnter new score for " + row[0])
-                        while True:
-                            firstScore = get_valid_input()
-                            if (int(firstScore) > 3) or (int(firstScore) < 0):
-                                print("Score invalid.")
-                            else:
-                                break
-                        print("\n\nEnter new score for " + row[2])
-                        while True:
-                            secondScore = get_valid_input()
-                            if (int(secondScore) > 3) or (int(secondScore) < 0):
-                                print("Score invalid.")
-                            else:
-                                break
-                        # Check input
-                        if firstScore > secondScore:
-                            maleRoundScores.append("Player Name - " + row[0])
-                            break
-                        elif firstScore < secondScore:
-                            maleRoundScores.append("Player Name - " + row[2])
-                            break
+        # Prints all MALE winners
+        for players in enumerate(malePlayerRankings[::-1]):  # Loops in descending order
+            player = players.split('-')  # Splits player information
+            print(player[0])
 
-        # Displays the FEMALE PLAYER round results
-        with open(femaleScoresFile) as csvFile:
-            readCsv = csv.reader(csvFile, delimiter=',')
-            next(readCsv)  # Skip headers in file
-            femaleRoundScores = []
-            for row in readCsv:
-                if row[1] > row[3]:
-                    femaleRoundScores.append("Player Name - " + row[0])
-                elif row[1] < row[3]:
-                    femaleRoundScores.append("Player Name - " + row[2])
-                else:  # If no winner is found, display error and get appended scores
-                    while True:
-                        print("\nERROR IN SCORE ENTRY!!!\n"
-                              "Please append the below score:\n"
-                              + row[0] + "-" + row[1] + " v " + row[2] + "-" + row[3])
-                        # Get a new valid score
-                        print("\n\nEnter new score for " + row[0])
-                        while True:
-                            firstScore = get_valid_input()
-                            if (int(firstScore) > 3) or (int(firstScore) < 0):
-                                print("Score invalid.")
-                            else:
-                                break
-                        print("\n\nEnter new score for " + row[2])
-                        while True:
-                            secondScore = get_valid_input()
-                            if (int(secondScore) > 3) or (int(secondScore) < 0):
-                                print("Score invalid.")
-                            else:
-                                break
-                        # Check input
-                        if firstScore > secondScore:
-                            femaleRoundScores.append("Player Name - " + row[0])
-                            break
-                        elif firstScore < secondScore:
-                            femaleRoundScores.append("Player Name - " + row[2])
-                            break
-
-        # Print winners
-        print("Male winners:")
-        for winner in maleRoundScores:
-            print(winner)
-        print("\nFemale winners:")
-        for winner in femaleRoundScores:
-            print(winner)
-        print("\n")
+        # Prints all FEMALE winners
+        for players in enumerate(femalePlayerRankings[::-1]):  # Loops in descending order
+            player = players.split('-')  # Splits player information
+            print(player[0])
 
     # Displays results to the user via the prompt
     def display_results(self):
