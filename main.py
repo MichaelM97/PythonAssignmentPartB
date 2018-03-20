@@ -108,7 +108,7 @@ def main():
             break
 
 
-# Allows user to choose to enter scores manually or from files
+"""Allows user to choose to enter scores manually or from files"""
 def score_input_menu(fileInfo, roundNum):
     clear_screen()
     global scoreChoice
@@ -129,7 +129,7 @@ def score_input_menu(fileInfo, roundNum):
             print("Invalid Input!\n\n")
 
 
-# Informs user on how to use system
+"""Informs user on how to use system"""
 def initial_menu():
     clear_screen()
 
@@ -153,7 +153,7 @@ def initial_menu():
             print("Invalid Input!!\n")
 
 
-# Validates user inputs (Only used for single character or integer entries)
+"""Validates user inputs (Only used for single character or integer entries)"""
 def get_valid_input():
     while True:
         try:  # Validates against blank entries
@@ -172,7 +172,7 @@ def get_valid_input():
             print("Invalid input! Please enter again.")
 
 
-# Clears display screen (checks if Windows or Linux as command differs)
+"""Clears display screen (checks if Windows or Linux as command differs)"""
 def clear_screen():
     if os.name == 'nt':
         os.system('cls')
@@ -180,7 +180,7 @@ def clear_screen():
         os.system('clear')
 
 
-# Class holds all information and functions related to storing and manipulating file data
+"""Class holds all information and functions related to storing and manipulating file data"""
 class FileInformation:
 
     # Degree's of difficulty
@@ -261,7 +261,7 @@ class FileInformation:
     global femaleUserScores
     femaleUserScores = []
 
-    # Get names of files containing player scores
+    """Get names of files containing player scores"""
     def get_score_files(self, roundNum):
         clear_screen()
         # Get MALE SCORES File Name
@@ -293,7 +293,7 @@ class FileInformation:
         femaleScoresFile = fileList[int(userInput)]  # Stores female file name globally
         fileList.remove(femaleScoresFile)  # Removes file from list so it cannot be selected again
 
-    # Allows user to input scores
+    """Allows user to input scores"""
     def get_score_input(self, roundNum, tempFilesExist):
         global maleUserScores
         maleUserScores = []
@@ -302,7 +302,7 @@ class FileInformation:
 
         # Process temp file information (if it exists)
         if tempFilesExist:
-            FileInformation.process_temp_files(self, roundNum)
+            FileInformation.process_temp_user_input_files(self, roundNum)
 
         # Get MALE PLAYER scores as input
         while len(malePlayerNames) > 1:  # While there are still male players left without a score
@@ -360,7 +360,7 @@ class FileInformation:
 
             # Adds most recent male match entry to temp file
             maleWrite = [roundNum] + row + [tournamentName]
-            FileInformation.update_temp_files(self, maleWrite, 0)
+            FileInformation.update_temp_user_input_files(self, maleWrite, 0)
 
         # Get FEMALE PLAYER scores as input
         while len(femalePlayerNames) > 1:  # While there are still female players left without a score
@@ -417,11 +417,11 @@ class FileInformation:
 
             # Adds most recent male match entry to temp file
             femaleWrite = [roundNum] + row + [tournamentName]
-            FileInformation.update_temp_files(self, 0, femaleWrite)
+            FileInformation.update_temp_user_input_files(self, 0, femaleWrite)
 
         return roundNum  # Returns in-case it was updated by files
 
-    # Sets the tournament name and difficulty based on file name, or user input
+    """Sets the tournament name and difficulty based on file name, or user input"""
     def set_difficulty(self, tournament):
         global tournamentName
         global tournamentDifficulty
@@ -453,7 +453,7 @@ class FileInformation:
                     print("Invalid input! Please enter again.")
             FileInformation.set_difficulty(self, userInput)
 
-    # Allows user to select files containing required information
+    """Allows user to select files containing required information"""
     def get_file_names(self):
         clear_screen()
         # Get RANKING POINTS File Name
@@ -515,7 +515,7 @@ class FileInformation:
         femalePlayersFile = fileList[int(userInput)]  # Stores female players file name globally
         fileList.remove(femalePlayersFile)  # Removes file from list so it cannot be selected again
 
-    # Store player names provided from file
+    """Store player names provided from file"""
     def store_player_names(self):
         # Store MALE PLAYERS FILE information in array
         with open(malePlayersFile) as csvFile:
@@ -529,7 +529,7 @@ class FileInformation:
             for i, row in enumerate(readCsv):
                 femalePlayerNames.append(row[0])
 
-    # Adds back all winners to the player name arrays, allowing further processing of winners
+    """Adds back all winners to the player name arrays, allowing further processing of winners"""
     def reset_player_names(self):
         # Clear lists
         global malePlayerNames
@@ -575,7 +575,7 @@ class FileInformation:
         for row in femaleWinners:
             femalePlayerNames.append(row)
 
-    # Stores required ranking points information from file provided by user
+    """Stores required ranking points information from file provided by user"""
     def store_ranking_info(self):
         # Store RANKING POINTS FILE information in array
         with open(rankingPointsFile) as csvFile:
@@ -588,7 +588,7 @@ class FileInformation:
             global femaleRankingPosition
             femaleRankingPosition = i
 
-    # Stores required prize money information from file provided by user
+    """Stores required prize money information from file provided by user"""
     def store_prize_info(self):
         # Store PRIZE MONEY FILE information in array
         with open(prizeMoneyFile) as csvFile:
@@ -605,7 +605,7 @@ class FileInformation:
                         prizeMoneyInfo.append(row[2])
                         previous = row[1]
 
-    # Stores players in order of their scores given in a file
+    """Stores players in order of their scores given in a file"""
     def process_file_scores(self):
         global maleRankingPosition
         global femaleRankingPosition
@@ -716,7 +716,7 @@ class FileInformation:
                     elif row[1] < row[3]:
                         femalePlayerRankings.append(row[2] + '-' + str(rankingPoints))
 
-    # Stores players in order of their scores given by the user
+    """Stores players in order of their scores given by the user"""
     def process_user_scores(self):
         global maleRankingPosition
         global femaleRankingPosition
@@ -809,7 +809,7 @@ class FileInformation:
                 elif row[1] < row[3]:
                     femalePlayerRankings.append(row[2] + '-' + str(rankingPoints))
 
-    # Assign prize money to top players
+    """Assign prize money to top players"""
     def process_winnings(selfs):
         # Assign MALE PLAYERS winnings
         count = len(malePlayerRankings) - 1
@@ -825,33 +825,33 @@ class FileInformation:
             femalePlayerRankings[count] += ("-" + str(prize))
             count += -1
 
-    # Processes information from previously interrupt calculations
-    def process_temp_files(self, roundNum):
+    """Processes information from previously interrupted user inputted scores"""
+    def process_temp_user_input_files(self, roundNum):
         global maleUserScores
         global femaleUserScores
 
-        # Process MALE PLAYER temp file
-        if tempMaleFile:
-            with open(directoryPath + "\\" + "TEMPMALE.csv") as csvFile:
-                readCsv = csv.reader(csvFile, delimiter=',')
-                # Adds matches from current round and removes them from selection
-                for row in readCsv:
-                    if int(row[0]) == roundNum:
-                        match = [row[1]] + [row[2]] + [row[3]] + [row[4]]
-                        maleUserScores.append(match)
-                        if row[1] in malePlayerNames:
-                            malePlayerNames.remove(row[1])
-                        if row[3] in malePlayerNames:
-                            malePlayerNames.remove(row[3])
-            # Set tournament name and difficulty
-            if row[5]:
-                tournament = row[5]
-            FileInformation.set_difficulty(self, tournament)
+        with open(directoryPath + "\\" + "TEMPMALE.csv") as csvFile:
+            readCsv = csv.reader(csvFile, delimiter=',')
+            next(readCsv)  # Skip headers in file
+            # Adds matches from current round and removes them from selection
+            for row in readCsv:
+                if int(row[0]) == roundNum:
+                    match = [row[1]] + [row[2]] + [row[3]] + [row[4]]
+                    maleUserScores.append(match)
+                    if row[1] in malePlayerNames:
+                        malePlayerNames.remove(row[1])
+                    if row[3] in malePlayerNames:
+                        malePlayerNames.remove(row[3])
+        # Set tournament name and difficulty
+        if row[5]:
+            tournament = row[5]
+        FileInformation.set_difficulty(self, tournament)
 
         # Process FEMALE PLAYER temp file
         if tempFemaleFile:
             with open(directoryPath + "\\" + "TEMPFEMALE.csv") as csvFile:
                 readCsv = csv.reader(csvFile, delimiter=',')
+                next(readCsv)  # Skip headers in file
                 # Adds matches from current round and removes them from selection
                 for row in readCsv:
                     if int(row[0]) == roundNum:
@@ -862,8 +862,8 @@ class FileInformation:
                         if row[3] in femalePlayerNames:
                             femalePlayerNames.remove(row[3])
 
-    # Adds data to the temp files
-    def update_temp_files(self, maleWrite, femaleWrite):
+    """Adds data to the temp user input files"""
+    def update_temp_user_input_files(self, maleWrite, femaleWrite):
         # Adds to MALE temp file
         if maleWrite != 0:
             csvFile = open((directoryPath + "\\" + "TEMPMALE.csv"), 'a', newline="\n")
@@ -877,7 +877,7 @@ class FileInformation:
             writer.writerow(femaleWrite)
             csvFile.close()
 
-    # Stores results from previously calculated tournaments
+    """Stores results from previously calculated tournaments"""
     def store_previous_results(self):
         global prevMaleRankings
         global prevFemaleRankings
@@ -894,7 +894,7 @@ class FileInformation:
                 prevFemaleRankings.remove(prevPlayer)
         prevFemaleRankings.extend(femalePlayerRankings)
 
-    # Adds the prize money and rankings points to players (if they were previously awarded any)
+    """Adds the prize money and rankings points to players (if they were previously awarded any)"""
     def add_previous_results(self):
         # Add previous MALE PLAYER data
         for i, x in enumerate(malePlayerRankings):
@@ -941,7 +941,7 @@ class FileInformation:
                     elif len(prevPlayer) > 3 >= len(player):  # Adds previous money to empty amount
                         femalePlayerRankings[i] += ("-" + str(prevPlayer[2]))
 
-    # Displays results of the current round
+    """Displays results of the current round"""
     def display_round_winners(self, roundNum):
         clear_screen()
         print("\nThe following results for round " + str(roundNum) + " have been calculated:")
@@ -985,7 +985,7 @@ class FileInformation:
         for winnerName in femaleWinners:
             print("Player Name - " + str(winnerName))
 
-    # Displays results to the user via the prompt
+    """Displays results to the user via the prompt"""
     def display_results(self):
         clear_screen()
         print("The following results for tournament " + tournamentName + " have been calculated:")
@@ -1045,7 +1045,7 @@ class FileInformation:
                 print(
                     "Player Name - " + result[0] + ", Ranking Points - " + result[1] + ", Place - " + result[2])
 
-    # Stores results in files named by the user
+    """Stores results in files named by the user"""
     def store_result_file(self):
         invalidChars = set(string.punctuation.replace("_", ""))  # Allows set symbols in fileName
         # Stores MALE PLAYER results in a file
