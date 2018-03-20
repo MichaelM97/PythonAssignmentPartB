@@ -14,15 +14,15 @@ def main():
 
     while True:  # Loop allows for entry of additional tournaments
 
-        score_input_menu(fileInfo, 1)  # User chooses if scores entered manually or via file
-
-        # Store information from selected files
-        fileInfo.store_ranking_info()
-        fileInfo.store_prize_info()
-        fileInfo.store_player_names()
-
         # Create temp files or process information
         count = fileInfo.create_temp_info_file()
+
+        if count == 1:  # Only do for round 1
+            score_input_menu(fileInfo, count)  # User chooses if scores entered manually or via file
+            # Store information from selected files
+            fileInfo.store_ranking_info()
+            fileInfo.store_prize_info()
+            fileInfo.store_player_names()
 
         # Process round 1 scores
         if count == 1:
@@ -40,16 +40,17 @@ def main():
 
             # Get score input from FILE
             if scoreChoice == '1':
-                count += 1
                 fileInfo.process_file_scores()
                 fileInfo.display_round_winners(count)
+                count += 1
 
             # Get score input from USER
             elif scoreChoice == '2':
-                count += 1
                 fileInfo.reset_player_names()
                 fileInfo.get_score_input(count)
                 fileInfo.process_user_scores()
+                fileInfo.display_round_winners(count)
+                count += 1
 
         # Calculate players winnings and display results
         fileInfo.process_winnings()
@@ -104,7 +105,8 @@ def score_input_menu(fileInfo, roundNum):
 
     #  Get valid user input
     while True:
-        print("Please select an option:\n\n1 - Read players score from file\n2 - Enter players score manually\n")
+        print("Please select an option for round %d:\n\n1 - Read players score from file\n"
+              "2 - Enter players score manually\n3 - Exit system\n" % roundNum)
         scoreChoice = get_valid_input()
         if scoreChoice == '1':
             fileInfo.get_score_files(roundNum)
@@ -114,6 +116,8 @@ def score_input_menu(fileInfo, roundNum):
             if roundNum == 1:
                 fileInfo.set_difficulty("")  # Set difficulty using user input
             break
+        elif scoreChoice == '3':
+            sys.exit("Thank you for using the system.")
         else:
             print("Invalid Input!\n\n")
 
@@ -267,6 +271,12 @@ class FileInformation:
         maleUserScores = []
         global femaleUserScores
         femaleUserScores = []
+
+        # Add temp files to main temp info file
+        maleFileName = "TEMP_MALE_" + str(roundNum) + str(tournamentName) + ".csv"
+        FileInformation.update_temp_info_file(self, roundNum, "User", maleFileName)
+        femaleFileName = "TEMP_FEMALE_" + str(roundNum) + str(tournamentName) + ".csv"
+        FileInformation.update_temp_info_file(self, roundNum, "User", femaleFileName)
 
         # Get MALE PLAYER scores as input
         while len(malePlayerNames) > 1:  # While there are still male players left without a score
@@ -480,13 +490,13 @@ class FileInformation:
     """Store player names provided from file"""
     def store_player_names(self):
         # Store MALE PLAYERS FILE information in array
-        with open(malePlayersFile) as csvFile:
+        with open(directoryPath + "\\" + malePlayersFile) as csvFile:
             readCsv = csv.reader(csvFile, delimiter=',')
             for i, row in enumerate(readCsv):
                 malePlayerNames.append(row[0])
 
         # Store FEMALE PLAYERS FILE information in array
-        with open(femalePlayersFile) as csvFile:
+        with open(directoryPath + "\\" + femalePlayersFile) as csvFile:
             readCsv = csv.reader(csvFile, delimiter=',')
             for i, row in enumerate(readCsv):
                 femalePlayerNames.append(row[0])
@@ -510,7 +520,7 @@ class FileInformation:
             maleLosers.append(loser[0])
 
         # Get MALE names and create winner list
-        with open(malePlayersFile) as csvFile:
+        with open(directoryPath + "\\" + malePlayersFile) as csvFile:
             readCsv = csv.reader(csvFile, delimiter=',')
             for row in readCsv:
                 maleNames.append(row[0])
@@ -527,7 +537,7 @@ class FileInformation:
             femaleLosers.append(loser[0])
 
         # Get FEMALE names and create winner list
-        with open(femalePlayersFile) as csvFile:
+        with open(directoryPath + "\\" + femalePlayersFile) as csvFile:
             readCsv = csv.reader(csvFile, delimiter=',')
             for row in readCsv:
                 femaleNames.append(row[0])
@@ -540,7 +550,7 @@ class FileInformation:
     """Stores required ranking points information from file provided by user"""
     def store_ranking_info(self):
         # Store RANKING POINTS FILE information in array
-        with open(rankingPointsFile) as csvFile:
+        with open(directoryPath + "\\" + rankingPointsFile) as csvFile:
             readCsv = csv.reader(csvFile, delimiter=',')
             for i, row in enumerate(readCsv):
                 rankingPointsInfo.append(row[0])
@@ -553,7 +563,7 @@ class FileInformation:
     """Stores required prize money information from file provided by user"""
     def store_prize_info(self):
         # Store PRIZE MONEY FILE information in array
-        with open(prizeMoneyFile) as csvFile:
+        with open(directoryPath + "\\" + prizeMoneyFile) as csvFile:
             readCsv = csv.reader(csvFile, delimiter=',')
             found = False
             previous = 0
@@ -573,7 +583,7 @@ class FileInformation:
         global femaleRankingPosition
 
         # Process MALE PLAYER scores
-        with open(maleScoresFile) as csvFile:
+        with open(directoryPath + "\\" + maleScoresFile) as csvFile:
             readCsv = csv.reader(csvFile, delimiter=',')
             # Calculate ranking points and assign them to losing player
             if len(list(readCsv)) > 9:
@@ -626,7 +636,7 @@ class FileInformation:
                         malePlayerRankings.append(row[2] + '-' + str(rankingPoints))
 
         # Process FEMALE PLAYER scores
-        with open(femaleScoresFile) as csvFile:
+        with open(directoryPath + "\\" + femaleScoresFile) as csvFile:
             readCsv = csv.reader(csvFile, delimiter=',')
             # Calculate ranking points and assign them to losing player
             if len(list(readCsv)) > 9:
@@ -790,21 +800,27 @@ class FileInformation:
     """Creates temp info file in root directory, or processes data if already present"""
     def create_temp_info_file(self):
         if tempFilesExist:
-            # CALL PROCESS FUNCTIONS
-            roundNum = FileInformation.process_temp_files()
+            csvFile = open(directoryPath + "\\" + "TEMPINFO.csv")
+            readCsv = csv.reader(csvFile, delimiter=',')
+            fileLength = len(list(readCsv))  # Get file length
+            if fileLength > 1:  # Only process if temp file has data
+                clear_screen()
+                print("!!!PRE-EXISTING DATA FOUND!!!\nThis will be re-entered for you.\n")
+                input("\nPress 'Enter' to continue...")
+                roundNum = FileInformation.process_temp_files(self)
+            csvFile.close()
         else:
             # Create main TEMP INFO file
             csvFile = open((directoryPath + "\\" + "TEMPINFO.csv"), 'a', newline="\n")
             writer = csv.writer(csvFile, dialect='excel')
-            writer.writerow(
-                ["Round Number"] + ["Input Type"] + ["File Name"])
+            writer.writerow(["Round Number"] + ["Input Type"] + ["File Name"])
             csvFile.close()
             roundNum = 1
         return roundNum
 
     """Updates the main temp info file with information about each rounds data"""
     def update_temp_info_file(self, roundNum, inputType, fileName):
-        data = str([roundNum]) + str([inputType]) + str([fileName])
+        data = [str(roundNum)] + [str(inputType)] + [str(fileName)]
         csvFile = open((directoryPath + "\\" + "TEMPINFO.csv"), 'a', newline="\n")
         writer = csv.writer(csvFile, dialect='excel')
         writer.writerow(data)
@@ -812,7 +828,7 @@ class FileInformation:
 
     """Adds user entered male data to temp file"""
     def update_temp_male_file(self, roundNum, data):
-        fileName = "TEMP_MALE_" + str(roundNum) + str(tournamentName)  # Access/create relevant file
+        fileName = "TEMP_MALE_" + str(roundNum) + str(tournamentName) + ".csv"  # Access/create relevant file
         files = os.listdir()
         csvFile = open((directoryPath + "\\" + fileName), 'a', newline="\n")
         writer = csv.writer(csvFile, dialect='excel')
@@ -823,7 +839,7 @@ class FileInformation:
 
     """Adds user entered female data to temp file"""
     def update_temp_female_file(self, roundNum, data):
-        fileName = "TEMP_FEMALE_" + str(roundNum) + str(tournamentName)  # Access/create relevant file
+        fileName = "TEMP_FEMALE_" + str(roundNum) + str(tournamentName) + ".csv"  # Access/create relevant file
         files = os.listdir()
         csvFile = open((directoryPath + "\\" + fileName), 'a', newline="\n")
         writer = csv.writer(csvFile, dialect='excel')
@@ -840,36 +856,41 @@ class FileInformation:
         with open(directoryPath + "\\" + "TEMPINFO.csv") as csvFile:
             readCsv = csv.reader(csvFile, delimiter=',')
             fileLength = len(list(readCsv))  # Get file length
-            next(readCsv)  # Skip headers in file
-            if fileLength > 1:  # Only process if temp file has data
-                counter = 0
-                for row in readCsv:
+            csvFile.seek(0)  # Reset file iterator pos
+            counter = 0
+            for row in readCsv:
+                if counter == 0:
+                    row = next(readCsv)  # Skip headers in file
+                counter += 1
+                if row[0] == '1':  # Set difficulty in first round
+                    FileInformation.set_difficulty(self, row[2])  # Attempt to pull difficulty from file name
+                    # Store information from selected files
+                    FileInformation.store_ranking_info(self)
+                    FileInformation.store_prize_info(self)
+                    FileInformation.store_player_names(self)
+                if fileLength > counter + 1:  # If there are both complete male and female files for this round
+                    # Process the male and female scores from the files
                     counter += 1
-                    if row[0] == 1:  # Set difficulty in first round
-                        FileInformation.set_difficulty(self, row[2])  # Attempt to pull difficulty from file name
-                    if fileLength > counter + 1:  # If there are both complete male and female files for this round
-                        # Process the male and female scores from the files
-                        counter += 1
-                        maleScoresFile = row[2]
-                        next(readCsv)
-                        femaleScoresFile = row[2]
-                        FileInformation.process_file_scores()
-                    elif fileLength <= counter + 1:  # If there is possibly an incomplete file
-                        # Check if MALE file is incomplete
+                    maleScoresFile = row[2]
+                    row = next(readCsv)
+                    femaleScoresFile = row[2]
+                    FileInformation.process_file_scores(self)
+                elif fileLength <= counter + 1:  # If there is possibly an incomplete file
+                    # Check if MALE file is incomplete
+                    if FileInformation.round_complete_check(self, row[0], row[2]) is False:
+                        FileInformation.process_partial_user_input(self, row[0], row[2], 0)
+                        print("Please complete the male scores entry for round %d:" % row[0])
+                        FileInformation.get_score_input(self, row[0])
+                    # Check if FEMALE file is incomplete
+                    else:
+                        maleFileName = row[2]
+                        row = next(readCsv)
                         if FileInformation.round_complete_check(self, row[0], row[2]) is False:
-                            FileInformation.process_partial_user_input(self, row[0], row[2], 0)
-                            print("Please complete the male scores entry for round %:", row[0])
+                            FileInformation.process_partial_user_input(self, row[0], maleFileName, row[2])
+                            print("Please complete the female scores entry for round %d:" % row[0])
                             FileInformation.get_score_input(self, row[0])
-                        # Check if FEMALE file is incomplete
-                        else:
-                            maleFileName = row[2]
-                            next(readCsv)
-                            if FileInformation.round_complete_check(self, row[0], row[2]) is False:
-                                FileInformation.process_partial_user_input(self, row[0], maleFileName, row[2])
-                                print("Please complete the female scores entry for round %:", row[0])
-                                FileInformation.get_score_input(self, row[0])
-                    roundNum = row[0]
-        return roundNum
+                roundNum = row[0]
+        return int(roundNum) + 1  # Add 1 as the recent round would of been processed
 
     """Checks if file is incomplete in relation to the round number/number of players"""
     def round_complete_check(self, roundNum, fileName):
@@ -1010,7 +1031,7 @@ class FileInformation:
             maleLosers.append(loser[0])
 
         # Get MALE names and create winner list
-        with open(malePlayersFile) as csvFile:
+        with open(directoryPath + "\\" + malePlayersFile) as csvFile:
             readCsv = csv.reader(csvFile, delimiter=',')
             for row in readCsv:
                 maleNames.append(row[0])
@@ -1027,7 +1048,7 @@ class FileInformation:
             femaleLosers.append(loser[0])
 
         # Get FEMALE names and create winner list
-        with open(femalePlayersFile) as csvFile:
+        with open(directoryPath + "\\" + femalePlayersFile) as csvFile:
             readCsv = csv.reader(csvFile, delimiter=',')
             for row in readCsv:
                 femaleNames.append(row[0])
