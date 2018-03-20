@@ -242,6 +242,7 @@ class FileInformation:
                 break
         global maleScoresFile
         maleScoresFile = fileList[int(userInput)]  # Stores male file name globally
+        FileInformation.update_temp_info_file(self, roundNum, "File", maleScoresFile)
         fileList.remove(maleScoresFile)  # Removes file from list so it cannot be selected again
 
         clear_screen()
@@ -257,6 +258,7 @@ class FileInformation:
                 break
         global femaleScoresFile
         femaleScoresFile = fileList[int(userInput)]  # Stores female file name globally
+        FileInformation.update_temp_info_file(self, roundNum, "File", femaleScoresFile)
         fileList.remove(femaleScoresFile)  # Removes file from list so it cannot be selected again
 
     """Allows user to input scores"""
@@ -320,9 +322,8 @@ class FileInformation:
             row.append(secondScore)
             maleUserScores.append(row)  # Store data entered into global array for later processing
 
-            # Adds most recent male match entry to temp file
-            maleWrite = [roundNum] + row + [tournamentName]
-            FileInformation.update_temp_user_input_files(self, maleWrite, 0)
+            # Adds most recent MALE match entry to temp file
+            FileInformation.update_temp_male_file(self, roundNum, row)
 
         # Get FEMALE PLAYER scores as input
         while len(femalePlayerNames) > 1:  # While there are still female players left without a score
@@ -377,9 +378,8 @@ class FileInformation:
             row.append(secondScore)
             femaleUserScores.append(row)  # Store data entered into global array for later processing
 
-            # Adds most recent male match entry to temp file
-            femaleWrite = [roundNum] + row + [tournamentName]
-            FileInformation.update_temp_user_input_files(self, 0, femaleWrite)
+            # Adds most recent FEMALE match entry to temp file
+            FileInformation.update_temp_female_file(self, roundNum, row)
 
         return roundNum  # Returns in-case it was updated by files
 
@@ -805,7 +805,7 @@ class FileInformation:
     """Updates the main temp info file with information about each rounds data"""
     def update_temp_info_file(self, roundNum, inputType, fileName):
         data = str([roundNum]) + str([inputType]) + str([fileName])
-        csvFile = open((directoryPath + "\\data\\" + "TEMPINFO.csv"), 'a', newline="\n")
+        csvFile = open((directoryPath + "\\" + "TEMPINFO.csv"), 'a', newline="\n")
         writer = csv.writer(csvFile, dialect='excel')
         writer.writerow(data)
         csvFile.close()
@@ -814,7 +814,7 @@ class FileInformation:
     def update_temp_male_file(self, roundNum, data):
         fileName = "TEMP_MALE_" + str(roundNum) + str(tournamentName)  # Access/create relevant file
         files = os.listdir()
-        csvFile = open((directoryPath + "\\data\\" + fileName), 'a', newline="\n")
+        csvFile = open((directoryPath + "\\" + fileName), 'a', newline="\n")
         writer = csv.writer(csvFile, dialect='excel')
         if fileName not in files:  # Add headers if new file
             writer.writerow(["Player A"] + ["Score Player A"] + ["Player B"] + ["Score Player B"])
@@ -825,7 +825,7 @@ class FileInformation:
     def update_temp_female_file(self, roundNum, data):
         fileName = "TEMP_FEMALE_" + str(roundNum) + str(tournamentName)  # Access/create relevant file
         files = os.listdir()
-        csvFile = open((directoryPath + "\\data\\" + fileName), 'a', newline="\n")
+        csvFile = open((directoryPath + "\\" + fileName), 'a', newline="\n")
         writer = csv.writer(csvFile, dialect='excel')
         if fileName not in files:  # Add headers if new file
             writer.writerow(["Player A"] + ["Score Player A"] + ["Player B"] + ["Score Player B"])
@@ -902,7 +902,7 @@ class FileInformation:
         global femaleUserScores
 
         if tempMaleFile != 0:
-            with open(directoryPath + "\\" + "TEMPMALE.csv") as csvFile:
+            with open(directoryPath + "\\" + tempMaleFile) as csvFile:
                 readCsv = csv.reader(csvFile, delimiter=',')
                 next(readCsv)  # Skip headers in file
                 # Adds matches from current round and removes them from selection
@@ -917,7 +917,7 @@ class FileInformation:
 
         # Process FEMALE PLAYER temp file
         if tempFemaleFile != 0:
-            with open(directoryPath + "\\" + "TEMPFEMALE.csv") as csvFile:
+            with open(directoryPath + "\\" + tempFemaleFile) as csvFile:
                 readCsv = csv.reader(csvFile, delimiter=',')
                 next(readCsv)  # Skip headers in file
                 # Adds matches from current round and removes them from selection
