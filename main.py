@@ -27,7 +27,7 @@ def main():
         # Process round 1 scores
         if count == 1:
             if scoreChoice == '1':
-                fileInfo.process_file_scores()
+                fileInfo.process_file_scores(count)
             else:
                 fileInfo.get_score_input(count)
                 fileInfo.process_user_scores()
@@ -37,10 +37,11 @@ def main():
         # Get file selection from user, and loop through to calculate players scores
         while count < 6 and maleRankingPosition > 1 and femaleRankingPosition > 1:
             score_input_menu(fileInfo, count)  # User chooses if scores entered manually or via file
+            fileInfo.reset_player_names()  # Fills player name list with losers for user input
 
             # Get score input from FILE
             if scoreChoice == '1':
-                fileInfo.process_file_scores()
+                fileInfo.process_file_scores(count)
                 fileInfo.display_round_winners(count)
                 count += 1
 
@@ -60,7 +61,7 @@ def main():
 
         # Store results in a file (if users chooses to)
         while True:
-            print("Would you like to store these results in a file? [Y/N]: ")
+            print("\nWould you like to store these results in a file? [Y/N]: ")
             userInput = get_valid_input().upper()
             if userInput == 'Y':
                 fileInfo.store_result_file()
@@ -73,7 +74,7 @@ def main():
 
         # Allows user to add more scores for more tournaments
         while True:
-            print("Would you like add results for another tournament? [Y/N]: ")
+            print("\nWould you like add results for another tournament? [Y/N]: ")
             userInput = get_valid_input().upper()
             if userInput == 'Y':
                 fileInfo.store_previous_results()
@@ -272,13 +273,8 @@ class FileInformation:
         global femaleUserScores
         femaleUserScores = []
 
-        # Add temp files to main temp info file
-        maleFileName = "TEMP_MALE_" + str(roundNum) + str(tournamentName) + ".csv"
-        FileInformation.update_temp_info_file(self, roundNum, "User", maleFileName)
-        femaleFileName = "TEMP_FEMALE_" + str(roundNum) + str(tournamentName) + ".csv"
-        FileInformation.update_temp_info_file(self, roundNum, "User", femaleFileName)
-
         # Get MALE PLAYER scores as input
+        fileCreated = False
         while len(malePlayerNames) > 1:  # While there are still male players left without a score
             clear_screen()
             print("Entering MALE PLAYER scores for round %d: \n" % roundNum)
@@ -332,10 +328,17 @@ class FileInformation:
             row.append(secondScore)
             maleUserScores.append(row)  # Store data entered into global array for later processing
 
+            # Add MALE temp file to main temp info file if it isn't already
+            if fileCreated is False:
+                fileCreated = True
+                maleFileName = "TEMP_MALE_" + str(roundNum) + str(tournamentName) + ".csv"
+                FileInformation.update_temp_info_file(self, roundNum, "User", maleFileName)
+
             # Adds most recent MALE match entry to temp file
             FileInformation.update_temp_male_file(self, roundNum, row)
 
         # Get FEMALE PLAYER scores as input
+        fileCreated = False
         while len(femalePlayerNames) > 1:  # While there are still female players left without a score
             clear_screen()
             print("Entering FEMALE PLAYER scores for round %d: \n" % roundNum)
@@ -387,6 +390,12 @@ class FileInformation:
                     break
             row.append(secondScore)
             femaleUserScores.append(row)  # Store data entered into global array for later processing
+
+            # Add FEMALE temp file to main temp info file if it isn't already
+            if fileCreated is False:
+                fileCreated = True
+                femaleFileName = "TEMP_FEMALE_" + str(roundNum) + str(tournamentName) + ".csv"
+                FileInformation.update_temp_info_file(self, roundNum, "User", femaleFileName)
 
             # Adds most recent FEMALE match entry to temp file
             FileInformation.update_temp_female_file(self, roundNum, row)
@@ -578,7 +587,7 @@ class FileInformation:
                         previous = row[1]
 
     """Stores players in order of their scores given in a file"""
-    def process_file_scores(self):
+    def process_file_scores(self, roundNum):
         global maleRankingPosition
         global femaleRankingPosition
 
@@ -599,32 +608,39 @@ class FileInformation:
                     malePlayerRankings.append(row[2] + '-' + str(rankingPoints))
                 elif row[1] < row[3] and int(row[3]) == 3 and 6 > gameTotal >= 3:
                     malePlayerRankings.append(row[0] + '-' + str(rankingPoints))
-                else:  # If no winner is found, display error and get appended scores
-                    while True:
-                        print("\nERROR IN SCORE ENTRY!!!\n"
-                              "Please append the below score:\n"
-                              + row[0] + "-" + row[1] + " v " + row[2] + "-" + row[3])
-                        # Get a new valid score
-                        print("\nEnter new score for " + row[0] + ":")
+                else:  # If no winner is found
+                    # Check if score is in temp appended file
+                    losingPlayer = FileInformation.find_ammended_score(self, roundNum, row[0], row[2])
+                    if losingPlayer != 0:
+                        malePlayerRankings.append(losingPlayer + '-' + str(rankingPoints))
+                    else:  # If appended score not in file, display error and get appended scores
                         while True:
-                            firstScore = get_valid_input()
-                            if (int(firstScore) > 3) or (int(firstScore) < 0):
-                                print("Score invalid.")
-                            else:
-                                break
-                        print("\n\nEnter new score for " + row[2])
-                        while True:
-                            secondScore = get_valid_input()
-                            if (int(secondScore) > 3) or (int(secondScore) < 0):
-                                print("Score invalid.")
-                            else:
-                                break
-                        # Check input
-                        if firstScore > secondScore:
-                            malePlayerRankings.append(row[2] + '-' + str(rankingPoints))
-                            break
-                        elif firstScore < secondScore:
-                            malePlayerRankings.append(row[0] + '-' + str(rankingPoints))
+                            print("\nERROR IN SCORE ENTRY!!!\n"
+                                  "Please append the below score:\n"
+                                  + row[0] + "-" + row[1] + " v " + row[2] + "-" + row[3])
+                            # Get a new valid score
+                            print("\nEnter new score for " + row[0] + ":")
+                            while True:
+                                firstScore = get_valid_input()
+                                if (int(firstScore) > 3) or (int(firstScore) < 0):
+                                    print("Score invalid.")
+                                else:
+                                    break
+                            print("\n\nEnter new score for " + row[2])
+                            while True:
+                                secondScore = get_valid_input()
+                                if (int(secondScore) > 3) or (int(secondScore) < 0):
+                                    print("Score invalid.")
+                                else:
+                                    break
+                            # Add loser + ranking points to list
+                            if firstScore > secondScore:
+                                malePlayerRankings.append(row[2] + '-' + str(rankingPoints))
+                            elif firstScore < secondScore:
+                                malePlayerRankings.append(row[0] + '-' + str(rankingPoints))
+                            # Add ammended score to file
+                            FileInformation.update_ammended_file(
+                                self, roundNum, row[0], firstScore, row[2], secondScore)
                             break
                 maleRankingPosition += -1
                 # If this is the last player, assign them the highest ranking points
@@ -652,32 +668,39 @@ class FileInformation:
                     femalePlayerRankings.append(row[2] + '-' + str(rankingPoints))
                 elif row[1] < row[3] and int(row[3]) == 2 and 4 > gameTotal >= 2:
                     femalePlayerRankings.append(row[0] + '-' + str(rankingPoints))
-                else:  # If no winner is found, display error and get appended scores
-                    while True:
-                        print("\nERROR IN SCORE ENTRY!!!\n"
-                              "Please append the below score:\n"
-                              + row[0] + "-" + row[1] + " v " + row[2] + "-" + row[3])
-                        # Get a new valid score
-                        print("\nEnter new score for " + row[0] + ":")
+                else:  # If no winner is found
+                    # Check if score is in temp appended file
+                    losingPlayer = FileInformation.find_ammended_score(self, roundNum, row[0], row[2])
+                    if losingPlayer != 0:
+                        femalePlayerRankings.append(losingPlayer + '-' + str(rankingPoints))
+                    else:  # If appended score not in file, display error and get appended scores
                         while True:
-                            firstScore = get_valid_input()
-                            if (int(firstScore) > 2) or (int(firstScore) < 0):
-                                print("Score invalid.")
-                            else:
-                                break
-                        print("\n\nEnter new score for " + row[2])
-                        while True:
-                            secondScore = get_valid_input()
-                            if (int(secondScore) > 2) or (int(secondScore) < 0):
-                                print("Score invalid.")
-                            else:
-                                break
-                        # Check input
-                        if firstScore > secondScore:
-                            femalePlayerRankings.append(row[2] + '-' + str(rankingPoints))
-                            break
-                        elif firstScore < secondScore:
-                            femalePlayerRankings.append(row[0] + '-' + str(rankingPoints))
+                            print("\nERROR IN SCORE ENTRY!!!\n"
+                                  "Please append the below score:\n"
+                                  + row[0] + "-" + row[1] + " v " + row[2] + "-" + row[3])
+                            # Get a new valid score
+                            print("\nEnter new score for " + row[0] + ":")
+                            while True:
+                                firstScore = get_valid_input()
+                                if (int(firstScore) > 2) or (int(firstScore) < 0):
+                                    print("Score invalid.")
+                                else:
+                                    break
+                            print("\n\nEnter new score for " + row[2])
+                            while True:
+                                secondScore = get_valid_input()
+                                if (int(secondScore) > 2) or (int(secondScore) < 0):
+                                    print("Score invalid.")
+                                else:
+                                    break
+                            # Add loser + ranking points to list
+                            if firstScore > secondScore:
+                                femalePlayerRankings.append(row[2] + '-' + str(rankingPoints))
+                            elif firstScore < secondScore:
+                                femalePlayerRankings.append(row[0] + '-' + str(rankingPoints))
+                            # Add ammended score to file
+                            FileInformation.update_ammended_file(
+                                self, roundNum, row[0], firstScore, row[2], secondScore)
                             break
                 femaleRankingPosition += -1
                 # If this is the last player, assign them the highest ranking points
@@ -815,6 +838,13 @@ class FileInformation:
             writer = csv.writer(csvFile, dialect='excel')
             writer.writerow(["Round Number"] + ["Input Type"] + ["File Name"])
             csvFile.close()
+
+            # Create ammended score file
+            csvFile = open((directoryPath + "\\" + "TEMPAMMENDED.csv"), 'a', newline="\n")
+            writer = csv.writer(csvFile, dialect='excel')
+            writer.writerow(["Round Number"] + ["Tournament Name"] + ["Player A"] + ["Player A Score"]
+                            + ["Player B"] + ["Player B Score"])
+            csvFile.close()
             roundNum = 1
         return roundNum
 
@@ -848,6 +878,41 @@ class FileInformation:
         writer.writerow(data)
         csvFile.close()
 
+    """Adds ammended score to temp file"""
+    def update_ammended_file(self, roundNum, playerA, playerAScore, playerB, playerBScore):
+        data = [str(roundNum)] + [tournamentName] + [playerA] + [playerAScore] + [playerB] + [playerBScore]
+        csvFile = open((directoryPath + "\\" + "TEMPAMMENDED.csv"), 'a', newline="\n")
+        writer = csv.writer(csvFile, dialect='excel')
+        writer.writerow(data)
+        csvFile.close()
+
+    """Finds previously ammended score from the temp file if it exists"""
+    def find_ammended_score(self, roundNum, playerA, playerB):
+        with open(directoryPath + "\\" + "TEMPAMMENDED.csv") as csvFile:
+            readCsv = csv.reader(csvFile, delimiter=',')
+            fileLength = len(list(readCsv))  # Get file length
+            csvFile.seek(0)  # Reset file iterator pos
+            counter = 0
+            if fileLength > 1:  # Only if file has data
+                for row in readCsv:
+                    if counter == 0:
+                        row = next(readCsv)  # Skip headers in file
+                    counter += 1
+                    # Find matching row
+                    if row[0] == roundNum and row[1] == tournamentName and row[2] == playerA and row[4] == playerB:
+                        # Return losers name
+                        if row[3] > row[5]:
+                            returnVar = row[4]
+                        elif row[5] > row[3]:
+                            returnVar = row[2]
+                        break
+                    else:
+                        returnVar = 0
+            else:
+                returnVar = 0
+                csvFile.close()
+        return returnVar
+
     """Processes pre-existing data provided by temp files"""
     def process_temp_files(self):
         global maleScoresFile
@@ -874,22 +939,60 @@ class FileInformation:
                     maleScoresFile = row[2]
                     row = next(readCsv)
                     femaleScoresFile = row[2]
-                    FileInformation.process_file_scores(self)
+                    FileInformation.process_file_scores(self, row[0])
+                    roundNum = row[0]
+                    FileInformation.reset_player_names(self)
                 elif fileLength <= counter + 1:  # If there is possibly an incomplete file
                     # Check if MALE file is incomplete
                     if FileInformation.round_complete_check(self, row[0], row[2]) is False:
-                        FileInformation.process_partial_user_input(self, row[0], row[2], 0)
+                        FileInformation.process_partial_user_input(self, row[2], 0)
                         print("Please complete the male scores entry for round %d:" % row[0])
                         FileInformation.get_score_input(self, row[0])
+                        roundNum = row[0]
+                        FileInformation.reset_player_names(self)
                     # Check if FEMALE file is incomplete
                     else:
                         maleFileName = row[2]
-                        row = next(readCsv)
-                        if FileInformation.round_complete_check(self, row[0], row[2]) is False:
-                            FileInformation.process_partial_user_input(self, row[0], maleFileName, row[2])
-                            print("Please complete the female scores entry for round %d:" % row[0])
-                            FileInformation.get_score_input(self, row[0])
-                roundNum = row[0]
+                        roundNum = row[0]
+                        dataEntryType = row[1]
+                        try:
+                            row = next(readCsv)
+                            if FileInformation.round_complete_check(self, row[0], row[2]) is False:
+                                FileInformation.process_partial_user_input(self, maleFileName, row[2])
+                                print("Please complete the female scores entry for round %d:" % row[0])
+                                FileInformation.get_score_input(self, row[0])
+                                FileInformation.reset_player_names(self)
+                        except StopIteration:  # If female temp file doesn't exist
+                            if dataEntryType == "File":  # Handle missing female FILE
+                                # Get FEMALE SCORES File Name
+                                while True:
+                                    for f, fileName in enumerate(fileList):
+                                        print(f, "-", fileName)
+                                    print(
+                                        "\nPlease select the file containing the FEMALE PLAYERS scores for round %d: "
+                                        % int(roundNum))
+                                    userInput = get_valid_input()
+                                    if (int(userInput) < 0) or (int(userInput) > len(fileList)):
+                                        print("Invalid Input!!!\n")
+                                    else:
+                                        break
+                                # Process files
+                                maleScoresFile = maleFileName
+                                femaleScoresFile = fileList[int(userInput)]  # Stores female file name globally
+                                fileList.remove(
+                                    femaleScoresFile)  # Removes file from list so it cannot be selected again
+                                FileInformation.update_temp_info_file(self, roundNum, "File", femaleScoresFile)
+                                FileInformation.process_file_scores(self, roundNum)
+                                FileInformation.display_round_winners(self, roundNum)
+                                FileInformation.reset_player_names(self)
+                            elif dataEntryType == "User":  # Handle missing female USER
+                                FileInformation.process_partial_user_input(self, maleFileName, 0)
+                                FileInformation.reset_player_names(self)
+                                FileInformation.handle_female_input(self, roundNum)
+                                FileInformation.process_user_scores(self)
+                                FileInformation.display_round_winners(self, roundNum)
+                    break
+
         return int(roundNum) + 1  # Add 1 as the recent round would of been processed
 
     """Checks if file is incomplete in relation to the round number/number of players"""
@@ -917,8 +1020,76 @@ class FileInformation:
             csvFile.close()
         return roundComplete
 
+    """Handles when the program has male data, but no female data, via user input"""
+    def handle_female_input(self, roundNum):
+        global femaleUserScores
+        femaleUserScores = []
+
+        # Get FEMALE PLAYER scores as input
+        fileCreated = False
+        while len(femalePlayerNames) > 1:  # While there are still female players left without a score
+            clear_screen()
+            print("Entering FEMALE PLAYER scores for round %d: \n" % int(roundNum))
+            row = []
+            # User selects first player in match
+            for i, name in enumerate(femalePlayerNames):  # List all available players
+                print(i + 1, "-", name)
+            while True:
+                print("\nPlease select the first player: ")
+                userInput = get_valid_input()
+                if int(userInput) < 1 or int(userInput) > len(femalePlayerNames):
+                    print("Invalid Input!\n")
+                else:
+                    break
+            row.append(femalePlayerNames[int(userInput) - 1])
+            femalePlayerNames.remove(femalePlayerNames[int(userInput) - 1])
+            # User enters the first players score
+            while True:
+                print("\nPlease enter the first players score[0-2]: ")
+                firstScore = get_valid_input()
+                if int(firstScore) < 0 or int(firstScore) > 2:
+                    print("Invalid Input!\n")
+                else:
+                    break
+            row.append(firstScore)
+            # User selects second player in match
+            for i, name in enumerate(femalePlayerNames):  # List all available players
+                print(i + 1, "-", name)
+            while True:
+                print("\nPlease select the second player: ")
+                userInput = get_valid_input()
+                if int(userInput) < 1 or int(userInput) > len(femalePlayerNames):
+                    print("Invalid Input!\n")
+                else:
+                    break
+            row.append(femalePlayerNames[int(userInput) - 1])
+            femalePlayerNames.remove(femalePlayerNames[int(userInput) - 1])
+            # User enters the second players score
+            while True:
+                print("\nPlease enter the second players score[0-2]: ")
+                secondScore = get_valid_input()
+                if int(secondScore) < 0 or int(secondScore) > 2:
+                    print("Invalid Input!\n")
+                elif (int(firstScore) + int(secondScore)) > 3:
+                    print("Invalid Input! There can only be a total of 3 games per pair.\n")
+                elif int(firstScore) != 2 and int(secondScore) != 2:
+                    print("Invalid Input! One player must win 2 games, or there is no winner.\n")
+                else:
+                    break
+            row.append(secondScore)
+            femaleUserScores.append(row)  # Store data entered into global array for later processing
+
+            # Add FEMALE temp file to main temp info file if it isn't already
+            if fileCreated is False:
+                fileCreated = True
+                femaleFileName = "TEMP_FEMALE_" + str(roundNum) + str(tournamentName) + ".csv"
+                FileInformation.update_temp_info_file(self, roundNum, "User", femaleFileName)
+
+            # Adds most recent FEMALE match entry to temp file
+            FileInformation.update_temp_female_file(self, roundNum, row)
+
     """Processes information from previously interrupted user inputted scores"""
-    def process_partial_user_input(self, roundNum, tempMaleFile, tempFemaleFile):
+    def process_partial_user_input(self, tempMaleFile, tempFemaleFile):
         global maleUserScores
         global femaleUserScores
 
@@ -928,13 +1099,12 @@ class FileInformation:
                 next(readCsv)  # Skip headers in file
                 # Adds matches from current round and removes them from selection
                 for row in readCsv:
-                    if int(row[0]) == roundNum:
-                        match = [row[1]] + [row[2]] + [row[3]] + [row[4]]
-                        maleUserScores.append(match)
-                        if row[1] in malePlayerNames:
-                            malePlayerNames.remove(row[1])
-                        if row[3] in malePlayerNames:
-                            malePlayerNames.remove(row[3])
+                    match = [row[0]] + [row[1]] + [row[2]] + [row[3]]
+                    maleUserScores.append(match)
+                    if row[0] in malePlayerNames:
+                        malePlayerNames.remove(row[0])
+                    if row[2] in malePlayerNames:
+                        malePlayerNames.remove(row[2])
 
         # Process FEMALE PLAYER temp file
         if tempFemaleFile != 0:
@@ -943,13 +1113,12 @@ class FileInformation:
                 next(readCsv)  # Skip headers in file
                 # Adds matches from current round and removes them from selection
                 for row in readCsv:
-                    if int(row[0]) == roundNum:
-                        match = [row[1]] + [row[2]] + [row[3]] + [row[4]]
-                        femaleUserScores.append(match)
-                        if row[1] in femalePlayerNames:
-                            femalePlayerNames.remove(row[1])
-                        if row[3] in femalePlayerNames:
-                            femalePlayerNames.remove(row[3])
+                    match = [row[0]] + [row[1]] + [row[2]] + [row[3]]
+                    femaleUserScores.append(match)
+                    if row[0] in femalePlayerNames:
+                        femalePlayerNames.remove(row[0])
+                    if row[2] in femalePlayerNames:
+                        femalePlayerNames.remove(row[2])
 
     """Stores results from previously calculated tournaments"""
     def store_previous_results(self):
@@ -1058,6 +1227,8 @@ class FileInformation:
         print("\nFemale Winners:")
         for winnerName in femaleWinners:
             print("Player Name - " + str(winnerName))
+
+        print("\nPress Enter to continue...")
 
     """Displays results to the user via the prompt"""
     def display_results(self):
