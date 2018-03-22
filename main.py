@@ -46,7 +46,7 @@ def main():
         # Get file selection from user, and loop through to calculate players scores
         while count < 6 and maleRankingPosition > 1 and femaleRankingPosition > 1:
             score_input_menu(fileInfo, count)  # User chooses if scores entered manually or via file
-            fileInfo.reset_player_names()  # Fills player name list with losers for user input
+            fileInfo.reset_player_names(count)  # Fills player name list with losers for user input
 
             # Get score input from FILE
             if scoreChoice == '1':
@@ -56,7 +56,6 @@ def main():
 
             # Get score input from USER
             elif scoreChoice == '2':
-                fileInfo.reset_player_names()
                 fileInfo.get_score_input(count)
                 fileInfo.process_user_scores(count)
                 fileInfo.display_round_winners(count)
@@ -264,18 +263,18 @@ class FileInformation:
     maleSeasonRankings = []
     global femaleSeasonRankings
     femaleSeasonRankings = []
-    global malePlayerWinners
-    malePlayerWinners = []
-    global femalePlayerWinners
-    femalePlayerWinners = []
+    global maleSeasonWinners
+    maleSeasonWinners = []
+    global femaleSeasonWinners
+    femaleSeasonWinners = []
     global maleUserScores
     maleUserScores = []
     global femaleUserScores
     femaleUserScores = []
-    global maleWinCount
-    maleWinCount = []
-    global femaleWinCount
-    femaleWinCount = []
+    global maleTournamentWinners
+    maleTournamentWinners = []
+    global femaleTournamentWinners
+    femaleTournamentWinners = []
 
     """Get names of files containing player scores"""
     def get_score_files(self, roundNum):
@@ -562,50 +561,24 @@ class FileInformation:
                 FileInformation.update_players_points(self, False, 0.0, row[0], 0)
 
     """Adds back all winners to the player name arrays, allowing further processing of winners"""
-    def reset_player_names(self):
+    def reset_player_names(self, roundNum):
         # Clear lists
         global malePlayerNames
         malePlayerNames = []
         global femalePlayerNames
         femalePlayerNames = []
-        maleLosers = []
-        maleNames = []
-        femaleLosers = []
-        femaleNames = []
 
         # Reset MALE PLAYER scores
-        # Get MALE losers
-        for losers in malePlayerRankings:
-            loser = losers.split('-')
-            maleLosers.append(loser[0])
-
-        # Get MALE names and create winner list
-        with open(directoryPath + "\\" + malePlayersFile) as csvFile:
-            readCsv = csv.reader(csvFile, delimiter=',')
-            for row in readCsv:
-                maleNames.append(row[0])
-        maleWinners = [n for n in maleNames if n not in maleLosers]
-
-        # Add winners back to list
-        for row in maleWinners:
-            malePlayerNames.append(row)
+        for rows in maleTournamentWinners:
+            row = rows.split('-')
+            if int(row[2]) == int(roundNum) - 1:
+                malePlayerNames.append(row[0])
 
         # Reset FEMALE PLAYER scores
-        # Get FEMALE losers
-        for losers in femalePlayerRankings:
-            loser = losers.split('-')
-            femaleLosers.append(loser[0])
-
-        # Get FEMALE names and create winner list
-        with open(directoryPath + "\\" + femalePlayersFile) as csvFile:
-            readCsv = csv.reader(csvFile, delimiter=',')
-            for row in readCsv:
-                femaleNames.append(row[0])
-        femaleWinners = [n for n in femaleNames if n not in femaleLosers]
-
-        # Add winners back to list
-        for row in femaleWinners:
-            femalePlayerNames.append(row)
+        for rows in femaleTournamentWinners:
+            row = rows.split('-')
+            if int(row[2]) == int(roundNum) - 1:
+                femalePlayerNames.append(row[0])
 
     """Stores required ranking points information from file provided by user"""
     def store_ranking_info(self):
@@ -1125,8 +1098,8 @@ class FileInformation:
 
     """Adds players win to list, and saves win type"""
     def update_players_wins(self, isMale, playerName, losingScore, roundNum):
-        global maleWinCount
-        global femaleWinCount
+        global maleTournamentWinners
+        global femaleTournamentWinners
 
         # Add win to MALE player
         if isMale:
@@ -1137,7 +1110,7 @@ class FileInformation:
                 winType = MIDDLE_MODIFIER
             elif int(losingScore) == 2:
                 winType = LOWEST_MODIFIER
-            maleWinCount.append(playerName + '-' + str(winType) + '-' + str(roundNum))
+            maleTournamentWinners.append(playerName + '-' + str(winType) + '-' + str(roundNum))
 
         # Add win to FEMALE player
         else:
@@ -1146,7 +1119,7 @@ class FileInformation:
                 winType = HIGHEST_MODIFIER
             elif int(losingScore) == 1:
                 winType = LOWEST_MODIFIER
-            femaleWinCount.append(playerName + '-' + str(winType) + '-' + str(roundNum))
+            femaleTournamentWinners.append(playerName + '-' + str(winType) + '-' + str(roundNum))
 
     """Add prize money to the top players totals"""
     def update_players_money(self, isMale, playerName):
@@ -1277,6 +1250,7 @@ class FileInformation:
     def process_temp_files(self):
         global maleScoresFile
         global femaleScoresFile
+        global fileList
 
         with open(directoryPath + "\\" + "TEMPINFO.csv") as csvFile:
             readCsv = csv.reader(csvFile, delimiter=',')
@@ -1299,9 +1273,14 @@ class FileInformation:
                     maleScoresFile = row[2]
                     row = next(readCsv)
                     femaleScoresFile = row[2]
-                    FileInformation.process_file_scores(self, row[0])
                     roundNum = row[0]
-                    FileInformation.reset_player_names(self)
+                    FileInformation.process_file_scores(self, roundNum)
+                    FileInformation.reset_player_names(self, roundNum)
+                    # Remove files as options
+                    if maleScoresFile in fileList:
+                        fileList.remove(maleScoresFile)
+                    if femaleScoresFile in fileList:
+                        fileList.remove(femaleScoresFile)
                 elif fileLength <= counter + 1:  # If there is possibly an incomplete file
                     # Check if MALE file is incomplete
                     if FileInformation.round_complete_check(self, row[0], row[2]) is False:
@@ -1309,7 +1288,7 @@ class FileInformation:
                         print("Please complete the male scores entry for round %d:" % row[0])
                         FileInformation.get_score_input(self, row[0])
                         roundNum = row[0]
-                        FileInformation.reset_player_names(self)
+                        FileInformation.reset_player_names(self, roundNum)
                     # Check if FEMALE file is incomplete
                     else:
                         maleFileName = row[2]
@@ -1321,7 +1300,7 @@ class FileInformation:
                                 FileInformation.process_partial_user_input(self, maleFileName, row[2])
                                 print("Please complete the female scores entry for round %d:" % row[0])
                                 FileInformation.get_score_input(self, row[0])
-                                FileInformation.reset_player_names(self)
+                                FileInformation.reset_player_names(self, row[0])
                         except StopIteration:  # If female temp file doesn't exist
                             if dataEntryType == "File":  # Handle missing female FILE
                                 # Get FEMALE SCORES File Name
@@ -1339,15 +1318,18 @@ class FileInformation:
                                 # Process files
                                 maleScoresFile = maleFileName
                                 femaleScoresFile = fileList[int(userInput)]  # Stores female file name globally
-                                fileList.remove(
-                                    femaleScoresFile)  # Removes file from list so it cannot be selected again
                                 FileInformation.update_temp_info_file(self, roundNum, "File", femaleScoresFile)
                                 FileInformation.process_file_scores(self, roundNum)
                                 FileInformation.display_round_winners(self, roundNum)
-                                FileInformation.reset_player_names(self)
+                                FileInformation.reset_player_names(self, roundNum)
+                                # Remove files as options
+                                if maleScoresFile in fileList:
+                                    fileList.remove(maleScoresFile)
+                                if femaleScoresFile in fileList:
+                                    fileList.remove(femaleScoresFile)
                             elif dataEntryType == "User":  # Handle missing female USER
                                 FileInformation.process_partial_user_input(self, maleFileName, 0)
-                                FileInformation.reset_player_names(self)
+                                FileInformation.reset_player_names(self, roundNum)
                                 FileInformation.handle_female_input(self, roundNum)
                                 FileInformation.process_user_scores(self, roundNum)
                                 FileInformation.display_round_winners(self, roundNum)
@@ -1486,6 +1468,7 @@ class FileInformation:
         global femaleSeasonRankings
 
         # Add MALE data
+        maleSeasonWinners.extend(maleTournamentWinners)
         if len(maleSeasonRankings) < 1:  # If there are no pre-existing season results
             maleSeasonRankings.extend(malePlayerRankings)
         else:
@@ -1506,6 +1489,7 @@ class FileInformation:
                                 maleSeasonRankings[i] = player[0] + '-' + str(rankingPoints) + '-' + "0" + '-' + "0.0"
 
         # Add FEMALE data
+        femaleSeasonWinners.extend(femaleTournamentWinners)
         if len(femaleSeasonRankings) < 1:  # If there are no pre-existing season results
             femaleSeasonRankings.extend(femalePlayerRankings)
         else:
@@ -1533,14 +1517,14 @@ class FileInformation:
 
         # Prints all MALE winners
         print("\nMale Winners:")
-        for winners in maleWinCount:
+        for winners in maleTournamentWinners:
             winner = winners.split('-')  # Splits win information
             if int(winner[2]) == roundNum:
                 print("Player Name - " + winner[0])
 
         # Prints all FEMALE winners
         print("\nFemale Winners:")
-        for winners in femaleWinCount:
+        for winners in femaleTournamentWinners:
             winner = winners.split('-')  # Splits win information
             if int(winner[2]) == roundNum:
                 print("Player Name - " + winner[0])
@@ -1721,11 +1705,11 @@ class FileInformation:
             writer = csv.writer(csvFile, dialect='excel')
             header = ['Player Name', 'Win Type', 'Round Number']  # Sets file headers
             writer.writerow(header)
-            for players in maleWinCount:
+            for players in maleTournamentWinners:
                 player = players.split('-')  # Splits player information
                 line = [str(player[0]), str(player[1]), str(player[2])]
                 writer.writerow(line)
-            for players in femaleWinCount:
+            for players in femaleTournamentWinners:
                 player = players.split('-')  # Splits player information
                 line = [str(player[0]), str(player[1]), str(player[2])]
                 writer.writerow(line)
@@ -1751,8 +1735,8 @@ class FileInformation:
 
     """Adds previous tournament data to the system"""
     def process_temp_tournament_data(self):
-        global maleWinCount
-        global femaleWinCount
+        global maleTournamentWinners
+        global femaleTournamentWinners
 
         with open(directoryPath + "\\" + "TEMP_PREVIOUS_TOURNAMENT.csv") as csvFile:
             readCsv = csv.reader(csvFile, delimiter=',')
@@ -1774,9 +1758,9 @@ class FileInformation:
             next(readCsv)  # Skip headers
             for row in readCsv:
                 if row[0] in malePlayerNames:
-                    maleWinCount.append(row[0] + '-' + row[1] + '-' + row[2])
+                    maleSeasonWinners.append(row[0] + '-' + row[1] + '-' + row[2])
                 elif row[0] in femalePlayerNames:
-                    femaleWinCount.append(row[0] + '-' + row[1] + '-' + row[2])
+                    femaleSeasonWinners.append(row[0] + '-' + row[1] + '-' + row[2])
 
     """Delete temp files to allow for further tournament processing"""
     def delete_temp_files(self):
@@ -1856,7 +1840,7 @@ class FileInformation:
                 else:
                     print("Invalid Input!\n")
             # Count wins
-            for wins in maleWinCount:
+            for wins in maleTournamentWinners:
                 win = wins.split('-')
                 if str(win[0]) == str(playerName) and str(win[1]) == str(winType):
                     winCount += 1
@@ -1889,7 +1873,7 @@ class FileInformation:
                 else:
                     print("Invalid Input!\n")
             # Count wins
-            for wins in femaleWinCount:
+            for wins in femaleTournamentWinners:
                 win = wins.split('-')
                 if str(win[0]) == str(playerName) and str(win[1]) == str(winType):
                     winCount += 1
@@ -1924,11 +1908,11 @@ class FileInformation:
                     break
             playerName = malePlayerNames[int(userInput) - 1]
             # Count wins
-            for wins in maleWinCount:
+            for wins in maleTournamentWinners:
                 win = wins.split('-')
                 if str(win[0]) == str(playerName):
                     winCount += 1
-            winPercentage = (winCount / len(maleWinCount) * 100)
+            winPercentage = (winCount / len(maleTournamentWinners) * 100)
             print("Your chosen player holds %.2f%% of the male player wins.\n" % winPercentage)
         else:
             # User selects the player
@@ -1943,11 +1927,11 @@ class FileInformation:
                     break
             playerName = femalePlayerNames[int(userInput) - 1]
             # Count wins
-            for wins in femaleWinCount:
+            for wins in femaleTournamentWinners:
                 win = wins.split('-')
                 if str(win[0]) == str(playerName):
                     winCount += 1
-            winPercentage = (winCount / len(femaleWinCount) * 100)
+            winPercentage = (winCount / len(femaleTournamentWinners) * 100)
             print("Your chosen player holds %.2f%% of the female player wins.\n" % winPercentage)
 
         input("\nPress 'Enter' to continue...")
@@ -1962,7 +1946,7 @@ class FileInformation:
         for player in femalePlayerNames:  # Add female players to list
             winList.append([player] + ["0"])
         # Find MALE player wins and add to totals
-        for wins in maleWinCount:
+        for wins in maleTournamentWinners:
             win = wins.split('-')
             for i, player in enumerate(winList):
                 if win[0] == player[0]:
@@ -1971,7 +1955,7 @@ class FileInformation:
                     if currentWins > mostWins:  # Keep track of most wins
                         mostWins = currentWins
         # Find FEMALE player wins and add to totals
-        for wins in femaleWinCount:
+        for wins in femaleTournamentWinners:
             win = wins.split('-')
             for i, player in enumerate(winList):
                 if win[0] == player[0]:
@@ -1998,7 +1982,7 @@ class FileInformation:
         for player in femalePlayerNames:  # Add female players to list
             winList.append([player] + ["0"])
         # Find MALE player losses and add to totals
-        for wins in maleWinCount:
+        for wins in maleTournamentWinners:
             win = wins.split('-')
             for i, player in enumerate(winList):
                 if win[0] == player[0]:
@@ -2007,7 +1991,7 @@ class FileInformation:
                     if currentWins < mostLosses:  # Keep track of most losses
                         mostLosses = currentWins
         # Find FEMALE player losses and add to totals
-        for wins in femaleWinCount:
+        for wins in femaleTournamentWinners:
             win = wins.split('-')
             for i, player in enumerate(winList):
                 if win[0] == player[0]:
