@@ -12,6 +12,8 @@ def main():
 
     fileInfo.get_file_names() # Get file names from user
 
+    fileInfo.store_player_names()
+
     tournamentCount = fileInfo.get_tournament_count()  # Keep track of number of tournaments processed
 
     # Add previous tournament data to season ranking list
@@ -30,7 +32,6 @@ def main():
             # Store information from selected files
             fileInfo.store_ranking_info()
             fileInfo.store_prize_info()
-            fileInfo.store_player_names()
 
         # Process round 1 scores
         if count == 1:
@@ -94,7 +95,6 @@ def main():
                 if userInput == 'Y':
                     fileInfo.create_temp_tournament_files(tournamentCount)
                     fileInfo.delete_temp_files()
-                    fileInfo.add_season_results()
                     global malePlayerRankings
                     malePlayerRankings = []
                     global femalePlayerRankings
@@ -686,7 +686,6 @@ class FileInformation:
                         # Add amended score to file
                         FileInformation.update_amended_file(
                             self, roundNum, row[0], amendedGame[1], row[2], amendedGame[3])
-                        break
                 # Calculate ranking points and assign to player
                 if int(roundNum) != 5:
                     # Handle loser
@@ -744,38 +743,19 @@ class FileInformation:
                             losingPlayer = row[0]
                             losingScore = amendedGame[1]
                     else:  # If appended score not in file, display error and get appended scores
-                        while True:
-                            print("\nERROR IN SCORE ENTRY!!!\n"
-                                  "Please append the below score:\n"
-                                  + row[0] + "-" + row[1] + " v " + row[2] + "-" + row[3])
-                            # Get a new valid score
-                            print("\nEnter new score for " + row[0] + ":")
-                            while True:
-                                firstScore = get_valid_input()
-                                if (int(firstScore) > 2) or (int(firstScore) < 0):
-                                    print("Score invalid.")
-                                else:
-                                    break
-                            print("\n\nEnter new score for " + row[2])
-                            while True:
-                                secondScore = get_valid_input()
-                                if (int(secondScore) > 2) or (int(secondScore) < 0):
-                                    print("Score invalid.")
-                                else:
-                                    break
-                            # Process winning player
-                            if firstScore > secondScore:
-                                losingScore = secondScore
-                                losingPlayer = row[2]
-                                winningPlayer = row[0]
-                            elif firstScore < secondScore:
-                                losingScore = firstScore
-                                losingPlayer = row[0]
-                                winningPlayer = row[2]
-                            # Add amended score to file
-                            FileInformation.update_amended_file(
-                                self, roundNum, row[0], firstScore, row[2], secondScore)
-                            break
+                        amendedGame = FileInformation.handle_invalid_score(self, False, row[0], row[1], row[2], row[3])
+                        # Process winning player
+                        if amendedGame[1] > amendedGame[3]:
+                            losingScore = amendedGame[3]
+                            losingPlayer = row[2]
+                            winningPlayer = row[0]
+                        elif amendedGame[1] < amendedGame[3]:
+                            losingScore = amendedGame[1]
+                            losingPlayer = row[0]
+                            winningPlayer = row[2]
+                        # Add amended score to file
+                        FileInformation.update_amended_file(
+                            self, roundNum, row[0], amendedGame[1], row[2], amendedGame[3])
                 # Calculate ranking points and assign to player
                 if int(roundNum) != 5:
                     # Handle loser
@@ -1774,14 +1754,14 @@ class FileInformation:
             for row in readCsv:
                 if row[0] in malePlayerNames:
                     if len(row) > 3:  # Player has money
-                        maleSeasonRankings.append(row[0] + '-' + row[1] + "0" + row[3])
+                        maleSeasonRankings.append(row[0] + '-' + row[1] + '-' + "0" + '-' + row[2])
                     else:
-                        maleSeasonRankings.append(row[0] + '-' + row[1] + "0" + "0.0")
+                        maleSeasonRankings.append(row[0] + '-' + row[1] + '-' + "0" + '-' + "0.0")
                 elif row[0] in femalePlayerNames:
                     if len(row) > 3:  # Player has money
-                        femaleSeasonRankings.append(row[0] + '-' + row[1] + "0" + row[3])
+                        femaleSeasonRankings.append(row[0] + '-' + row[1] + '-' + "0" + '-' + row[2])
                     else:
-                        femaleSeasonRankings.append(row[0] + '-' + row[1] + "0" + "0.0")
+                        femaleSeasonRankings.append(row[0] + '-' + row[1] + '-' + "0" + '-' + "0.0")
             csvFile.close()
         with open(directoryPath + "\\" + "TEMP_PREVIOUS_WINS.csv") as csvFile:
             readCsv = csv.reader(csvFile, delimiter=',')
