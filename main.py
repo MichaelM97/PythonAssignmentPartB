@@ -12,6 +12,8 @@ def main():
 
     fileInfo.get_file_names() # Get file names from user
 
+    fileInfo.store_player_names()
+
     tournamentCount = fileInfo.get_tournament_count()  # Keep track of number of tournaments processed
 
     # Add previous tournament data to season ranking list
@@ -30,7 +32,6 @@ def main():
             # Store information from selected files
             fileInfo.store_ranking_info()
             fileInfo.store_prize_info()
-            fileInfo.store_player_names()
 
         # Process round 1 scores
         if count == 1:
@@ -66,49 +67,25 @@ def main():
         fileInfo.add_season_results()
 
         # Display results
-        clear_screen()
-        while True:
-            print("\nHow would you like to view the tournament data?: \n1 - Prize Money Order\n2 - Ranking Point Order"
-                  "\n3 - Overall Season Ranking\n4 - Exit program\n")
-            userInput = get_valid_input().upper()
-            if userInput == '1':
-                fileInfo.display_results_prize_order()
-                break
-            elif userInput == '2':
-                fileInfo.display_results_points_order()
-                break
-            elif userInput == '3':
-                fileInfo.display_season_results()
-                break
-            elif userInput == '4':
-                sys.exit("Thank you for using the system.")
-            else:
-                print("Invalid Input!!!\n")
+        tournament_menu(fileInfo)
 
         if tournamentCount < 4:
             # Prepare system for additional tournament entries
             clear_screen()
-            while True:
-                print("Would you like to process another tournament for this season?[Y/N]\n")
-                userInput = get_valid_input().upper()
-                if userInput == 'Y':
-                    fileInfo.create_temp_tournament_files(tournamentCount)
-                    fileInfo.delete_temp_files()
-                    fileInfo.add_season_results()
-                    global malePlayerRankings
-                    malePlayerRankings = []
-                    global femalePlayerRankings
-                    femalePlayerRankings = []
-                    global malePrizeMoneyInfo
-                    malePrizeMoneyInfo = []
-                    global femalePrizeMoneyInfo
-                    femalePrizeMoneyInfo = []
-                    break
-                elif userInput == 'N':
-                    sys.exit("Thank you for using the system.")
-                    break
-                else:
-                    print("Invalid Input!!!\n")
+            fileInfo.create_temp_tournament_files(tournamentCount)
+            global tournamentFilesExist
+            tournamentFilesExist = True
+            global malePlayerRankings
+            malePlayerRankings = []
+            global femalePlayerRankings
+            femalePlayerRankings = []
+            global malePrizeMoneyInfo
+            malePrizeMoneyInfo = []
+            global femalePrizeMoneyInfo
+            femalePrizeMoneyInfo = []
+            fileInfo.delete_temp_files()
+            global tempFilesExist
+            tempFilesExist = False
 
     clear_screen()
     print("The season is complete. Please view the results below.\n")
@@ -138,6 +115,31 @@ def score_input_menu(fileInfo, roundNum):
             sys.exit("Thank you for using the system.")
         else:
             print("Invalid Input!\n\n")
+
+
+"""Allows user to choose what they want to see after fully processing a tournament"""
+def tournament_menu(fileInfo):
+    clear_screen()
+    while True:
+        print("\nHow would you like to view the tournament data?: \n1 - Prize Money Order\n2 - Ranking Point Order"
+              "\n3 - Overall Season Ranking\n4 - View player view options\n5 - Process another tournament\n"
+              "6 - Exit program\n")
+        userInput = get_valid_input().upper()
+        if userInput == '1':
+            fileInfo.display_results_prize_order()
+        elif userInput == '2':
+            fileInfo.display_results_points_order()
+        elif userInput == '3':
+            fileInfo.display_season_results()
+        elif userInput == '4':
+            fileInfo.store_player_names()
+            fileInfo.player_view_menu()
+        elif userInput == '5':
+            break
+        elif userInput == '6':
+            sys.exit("Thank you for using the system.")
+        else:
+            print("Invalid Input!!!\n")
 
 
 """Informs user on how to use system"""
@@ -541,6 +543,10 @@ class FileInformation:
 
     """Store player names provided from file, and adds them to the ranking point counter list"""
     def store_player_names(self):
+        global malePlayerNames
+        malePlayerNames = []
+        global femalePlayerNames
+        femalePlayerNames = []
         # Store MALE PLAYERS FILE information in array
         with open(directoryPath + "\\" + malePlayersFile) as csvFile:
             readCsv = csv.reader(csvFile, delimiter=',')
@@ -686,7 +692,6 @@ class FileInformation:
                         # Add amended score to file
                         FileInformation.update_amended_file(
                             self, roundNum, row[0], amendedGame[1], row[2], amendedGame[3])
-                        break
                 # Calculate ranking points and assign to player
                 if int(roundNum) != 5:
                     # Handle loser
@@ -744,38 +749,19 @@ class FileInformation:
                             losingPlayer = row[0]
                             losingScore = amendedGame[1]
                     else:  # If appended score not in file, display error and get appended scores
-                        while True:
-                            print("\nERROR IN SCORE ENTRY!!!\n"
-                                  "Please append the below score:\n"
-                                  + row[0] + "-" + row[1] + " v " + row[2] + "-" + row[3])
-                            # Get a new valid score
-                            print("\nEnter new score for " + row[0] + ":")
-                            while True:
-                                firstScore = get_valid_input()
-                                if (int(firstScore) > 2) or (int(firstScore) < 0):
-                                    print("Score invalid.")
-                                else:
-                                    break
-                            print("\n\nEnter new score for " + row[2])
-                            while True:
-                                secondScore = get_valid_input()
-                                if (int(secondScore) > 2) or (int(secondScore) < 0):
-                                    print("Score invalid.")
-                                else:
-                                    break
-                            # Process winning player
-                            if firstScore > secondScore:
-                                losingScore = secondScore
-                                losingPlayer = row[2]
-                                winningPlayer = row[0]
-                            elif firstScore < secondScore:
-                                losingScore = firstScore
-                                losingPlayer = row[0]
-                                winningPlayer = row[2]
-                            # Add amended score to file
-                            FileInformation.update_amended_file(
-                                self, roundNum, row[0], firstScore, row[2], secondScore)
-                            break
+                        amendedGame = FileInformation.handle_invalid_score(self, False, row[0], row[1], row[2], row[3])
+                        # Process winning player
+                        if amendedGame[1] > amendedGame[3]:
+                            losingScore = amendedGame[3]
+                            losingPlayer = row[2]
+                            winningPlayer = row[0]
+                        elif amendedGame[1] < amendedGame[3]:
+                            losingScore = amendedGame[1]
+                            losingPlayer = row[0]
+                            winningPlayer = row[2]
+                        # Add amended score to file
+                        FileInformation.update_amended_file(
+                            self, roundNum, row[0], amendedGame[1], row[2], amendedGame[3])
                 # Calculate ranking points and assign to player
                 if int(roundNum) != 5:
                     # Handle loser
@@ -1774,14 +1760,14 @@ class FileInformation:
             for row in readCsv:
                 if row[0] in malePlayerNames:
                     if len(row) > 3:  # Player has money
-                        maleSeasonRankings.append(row[0] + '-' + row[1] + "0" + row[3])
+                        maleSeasonRankings.append(row[0] + '-' + row[1] + '-' + "0" + '-' + row[2])
                     else:
-                        maleSeasonRankings.append(row[0] + '-' + row[1] + "0" + "0.0")
+                        maleSeasonRankings.append(row[0] + '-' + row[1] + '-' + "0" + '-' + "0.0")
                 elif row[0] in femalePlayerNames:
                     if len(row) > 3:  # Player has money
-                        femaleSeasonRankings.append(row[0] + '-' + row[1] + "0" + row[3])
+                        femaleSeasonRankings.append(row[0] + '-' + row[1] + '-' + "0" + '-' + row[2])
                     else:
-                        femaleSeasonRankings.append(row[0] + '-' + row[1] + "0" + "0.0")
+                        femaleSeasonRankings.append(row[0] + '-' + row[1] + '-' + "0" + '-' + "0.0")
             csvFile.close()
         with open(directoryPath + "\\" + "TEMP_PREVIOUS_WINS.csv") as csvFile:
             readCsv = csv.reader(csvFile, delimiter=',')
@@ -1805,6 +1791,241 @@ class FileInformation:
         # Remove main temp files
         os.remove(directoryPath + "\\" + "TEMPINFO.csv")
         os.remove(directoryPath + "\\" + "TEMPAMENDED.csv")
+
+    """Allows user to select and see different data related to specific players - Menu related to TASK 3"""
+    def player_view_menu(self):
+        clear_screen()
+        while True:
+            print("\nPlease select what you would like to see?: \n1 - Player Wins of a particular score\n"
+                  "2 - Player Percentage Wins\n3 - Player with most wins so far\n4 - Player with most losses so far\n"
+                  "5 - Return to Tournament Menu\n")
+            userInput = get_valid_input().upper()
+            if userInput == '1':
+                FileInformation.player_score_wins(self)
+            elif userInput == '2':
+                FileInformation.player_percentage_wins(self)
+            elif userInput == '3':
+                FileInformation.most_player_wins(self)
+            elif userInput == '4':
+                FileInformation.most_player_losses(self)
+            elif userInput == '5':
+                break
+            else:
+                print("Invalid Input!!!\n")
+
+    """Shows user number of wins of a particular score type for a player"""
+    def player_score_wins(self):
+        winCount = 0
+        # User selects gender
+        while True:
+            print("Would you like to view a Male or Female player?[M/F]")
+            userInput = get_valid_input().upper()
+            if userInput == 'M':
+                isMale = True
+                break
+            elif userInput == 'F':
+                isMale = False
+                break
+            else:
+                print("Invalid Input!\n")
+        if isMale:
+            # User selects the player
+            for i, name in enumerate(malePlayerNames):  # List all available players
+                print(i + 1, "-", name)
+            while True:
+                print("\nPlease select the player you would like to view: ")
+                userInput = get_valid_input()
+                if int(userInput) < 1 or int(userInput) > len(malePlayerNames):
+                    print("Invalid Input!\n")
+                else:
+                    break
+            playerName = malePlayerNames[int(userInput) - 1]
+            # User selects type of win
+            while True:
+                print("Please select which type of win you would like to view:\n1 - 3-2\n2 - 3-1\n3 - 3-0\n")
+                userInput = get_valid_input().upper()
+                if userInput == '1':
+                    winType = LOWEST_MODIFIER
+                    break
+                elif userInput == '2':
+                    winType = MIDDLE_MODIFIER
+                    break
+                elif userInput == '3':
+                    winType = HIGHEST_MODIFIER
+                    break
+                else:
+                    print("Invalid Input!\n")
+            # Count wins
+            for wins in maleWinCount:
+                win = wins.split('-')
+                if str(win[0]) == str(playerName) and str(win[1]) == str(winType):
+                    winCount += 1
+
+        else:
+            # User selects the player
+            for i, name in enumerate(femalePlayerNames):  # List all available players
+                print(i + 1, "-", name)
+            while True:
+                print("\nPlease select the player you would like to view: ")
+                userInput = get_valid_input()
+                if int(userInput) < 1 or int(userInput) > len(femalePlayerNames):
+                    print("Invalid Input!\n")
+                else:
+                    break
+            playerName = femalePlayerNames[int(userInput) - 1]
+            # User selects type of win
+            while True:
+                print("Please select which type of win you would like to view:\n1 - 3-2\n2 - 3-1\n3 - 3-0\n")
+                userInput = get_valid_input().upper()
+                if userInput == '1':
+                    winType = LOWEST_MODIFIER
+                    break
+                elif userInput == '2':
+                    winType = MIDDLE_MODIFIER
+                    break
+                elif userInput == '3':
+                    winType = HIGHEST_MODIFIER
+                    break
+                else:
+                    print("Invalid Input!\n")
+            # Count wins
+            for wins in femaleWinCount:
+                win = wins.split('-')
+                if str(win[0]) == str(playerName) and str(win[1]) == str(winType):
+                    winCount += 1
+        print("The number of wins that fit your selected criteria is:\n%d" % winCount)
+        input("\nPress 'Enter' to continue...")
+
+    """Shows user percentage of wins for a particular player"""
+    def player_percentage_wins(self):
+        winCount = 0
+        # User selects gender
+        while True:
+            print("Would you like to view a Male or Female player?[M/F]")
+            userInput = get_valid_input().upper()
+            if userInput == 'M':
+                isMale = True
+                break
+            elif userInput == 'F':
+                isMale = False
+                break
+            else:
+                print("Invalid Input!\n")
+        if isMale:
+            # User selects the player
+            for i, name in enumerate(malePlayerNames):  # List all available players
+                print(i + 1, "-", name)
+            while True:
+                print("\nPlease select the player you would like to view: ")
+                userInput = get_valid_input()
+                if int(userInput) < 1 or int(userInput) > len(malePlayerNames):
+                    print("Invalid Input!\n")
+                else:
+                    break
+            playerName = malePlayerNames[int(userInput) - 1]
+            # Count wins
+            for wins in maleWinCount:
+                win = wins.split('-')
+                if str(win[0]) == str(playerName):
+                    winCount += 1
+            winPercentage = (winCount / len(maleWinCount) * 100)
+            print("Your chosen player holds %.2f%% of the male player wins.\n" % winPercentage)
+        else:
+            # User selects the player
+            for i, name in enumerate(femalePlayerNames):  # List all available players
+                print(i + 1, "-", name)
+            while True:
+                print("\nPlease select the player you would like to view: ")
+                userInput = get_valid_input()
+                if int(userInput) < 1 or int(userInput) > len(femalePlayerNames):
+                    print("Invalid Input!\n")
+                else:
+                    break
+            playerName = femalePlayerNames[int(userInput) - 1]
+            # Count wins
+            for wins in femaleWinCount:
+                win = wins.split('-')
+                if str(win[0]) == str(playerName):
+                    winCount += 1
+            winPercentage = (winCount / len(femaleWinCount) * 100)
+            print("Your chosen player holds %.2f%% of the female player wins.\n" % winPercentage)
+
+        input("\nPress 'Enter' to continue...")
+
+    """Returns the player with the most wins"""
+    def most_player_wins(self):
+        mostWins = 0  # Keeps track of highest amount of wins
+        # Create win tracking list
+        winList = []
+        for player in malePlayerNames:  # Add male players to list
+            winList.append([player] + ["0"])
+        for player in femalePlayerNames:  # Add female players to list
+            winList.append([player] + ["0"])
+        # Find MALE player wins and add to totals
+        for wins in maleWinCount:
+            win = wins.split('-')
+            for i, player in enumerate(winList):
+                if win[0] == player[0]:
+                    currentWins = int(win[2]) + 1
+                    winList[i] = [player[0]] + [currentWins]
+                    if currentWins > mostWins:  # Keep track of most wins
+                        mostWins = currentWins
+        # Find FEMALE player wins and add to totals
+        for wins in femaleWinCount:
+            win = wins.split('-')
+            for i, player in enumerate(winList):
+                if win[0] == player[0]:
+                    currentWins = int(win[2]) + 1
+                    winList[i] = [player[0]] + [currentWins]
+                    if currentWins > mostWins:  # Keep track of most wins
+                        mostWins = currentWins
+
+        # Print players with the most wins
+        print("Players with the most wins so far this season:")
+        for win in winList:
+            if win[1] == mostWins:
+                print(win[0])
+        input("\nPress 'Enter' to continue...")
+
+    """Returns the player with the most losses"""
+    def most_player_losses(self):
+        mostLosses = 50  # Keeps track of lowest amount of wins, high number as placeholder
+        # Create win tracking list
+        winList = []
+        loserList = []
+        for player in malePlayerNames:  # Add male players to list
+            winList.append([player] + ["0"])
+        for player in femalePlayerNames:  # Add female players to list
+            winList.append([player] + ["0"])
+        # Find MALE player losses and add to totals
+        for wins in maleWinCount:
+            win = wins.split('-')
+            for i, player in enumerate(winList):
+                if win[0] == player[0]:
+                    currentWins = int(win[2]) + 1
+                    winList[i] = [player[0]] + [currentWins]
+                    if currentWins < mostLosses:  # Keep track of most losses
+                        mostLosses = currentWins
+        # Find FEMALE player losses and add to totals
+        for wins in femaleWinCount:
+            win = wins.split('-')
+            for i, player in enumerate(winList):
+                if win[0] == player[0]:
+                    currentWins = int(win[2]) + 1
+                    winList[i] = [player[0]] + [currentWins]
+                    if currentWins < mostLosses:  # Keep track of most losses
+                        mostLosses = currentWins
+        # Add losers to list
+        if len(loserList) == 0:
+            for loser in winList:
+                if loser[1] == mostLosses:
+                    loserList.append(loser[0])
+
+        # Print players with the most losses
+        print("Players with the most losses so far this season:")
+        for loss in loserList:
+            print(loss)
+        input("\nPress 'Enter' to continue...")
 
 initial_menu()
 if __name__ == "__main__": main()
