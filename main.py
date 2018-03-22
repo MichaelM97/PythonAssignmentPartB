@@ -4,7 +4,7 @@
 import csv
 import os
 import sys
-import string
+import time
 
 
 def main():
@@ -24,8 +24,13 @@ def main():
 
         tournamentCount += 1
 
+        # TIME EVAL Algorithm (un-comment '###' lines to run)
+        ### startTime = time.time()  # Set starting time of function process
+
         # Create temp files or process information
         count = fileInfo.create_temp_info_file()
+
+        ### print("TIME TAKEN: %f" % float(time.time() - startTime))  # Print the difference in time asap
 
         if count == 1:  # Only do for round 1
             score_input_menu(fileInfo, count)  # User chooses if scores entered manually or via file
@@ -1188,10 +1193,9 @@ class FileInformation:
     """Updates the main temp info file with information about each rounds data"""
     def update_temp_info_file(self, roundNum, inputType, fileName):
         data = [str(roundNum)] + [str(inputType)] + [str(fileName)]
-        csvFile = open((directoryPath + "\\" + "TEMPINFO.csv"), 'a', newline="\n")
-        writer = csv.writer(csvFile, dialect='excel')
-        writer.writerow(data)
-        csvFile.close()
+        with open((directoryPath + "\\" + "TEMPINFO.csv"), 'a', newline="\n") as csvFile:
+            writer = csv.writer(csvFile, dialect='excel')
+            writer.writerow(data)
 
     """Adds user entered male data to temp file"""
     def update_temp_male_file(self, roundNum, data):
